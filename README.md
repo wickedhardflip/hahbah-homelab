@@ -11,6 +11,13 @@
 >
 > **Status:** it runs the author's network every day, but it is a hobby project, not a product. Expect rough edges (see the end of this page) and no support promise. Issues and pull requests are welcome ([CONTRIBUTING](CONTRIBUTING.md)).
 
+| | |
+|---|---|
+| ![The 3D view](docs/images/3d.jpg) | ![The Map view in Midnight theme](docs/images/map-midnight.png) |
+| ![The NOC view](docs/images/noc.png) | ![The sign-in page](docs/images/login.jpg) |
+
+*Screenshots are the real portal running on made-up sample data (`python tools/sample_portal.py`, then `python tools/shots.py out/`). Names, addresses and numbers are placeholders.*
+
 A home platform that looks like a subway map. One portal shows every machine, app, mount and drive as a station on a transit line, signs you in once for everything behind it, and tells you in plain language when a line is running late.
 
 Everything here is code and config: the portal, the reverse proxy, the firewall, the monitoring collector and the pull-based deploy that keeps the server in sync with this repo.
@@ -327,7 +334,6 @@ Add one line to `apps.yaml` (id, name, subdomain, host, port, `health`, `lan_url
 - **The sample apps** in `apps.yaml` (`jobs`, `social`, `replexon`, `plex`, `tautulli`) are placeholders for your own. The first one is what Discreet mode hides.
 - **LAN addresses** such as `192.168.4.x` and the interface name `enp2s0` are the original network's. Replace them (see [Make it your own](docs/make-it-yours.md)).
 - **Some optional pieces** (the NAS station, router DNS check, RePlexOn backup station) only make sense if you have that hardware or software. Their settings are off when unset, but the drawn map in `portal/app/topology.json` still shows their stations until you edit it.
-- **The screenshots are missing** on purpose: the old ones were from a design mockup. New ones will come from the real portal running on sample data.
 
 ## Credits and disclaimer
 
