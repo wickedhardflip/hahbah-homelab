@@ -11,10 +11,13 @@
 >
 > **Status:** it runs the author's network every day, but it is a hobby project, not a product. Expect rough edges (see the end of this page) and no support promise. Issues and pull requests are welcome ([CONTRIBUTING](CONTRIBUTING.md)).
 
-| | |
-|---|---|
-| ![The 3D view](docs/images/3d.jpg) | ![The Map view in Midnight theme](docs/images/map-midnight.png) |
-| ![The NOC view](docs/images/noc.png) | ![The sign-in page](docs/images/login.jpg) |
+<p align="center"><img src="docs/screenshots/3d.jpg" alt="The 3D view: a hand-drawn town with the transit lines, stadium spots and weather chip" width="900"></p>
+
+<p align="center"><img src="docs/screenshots/map-midnight.png" alt="The Map view in the Midnight theme" width="900"></p>
+
+<p align="center"><img src="docs/screenshots/noc.png" alt="The NOC view: host panels, edge checks and service tiles" width="900"></p>
+
+<p align="center"><img src="docs/screenshots/login.jpg" alt="The sign-in page" width="900"></p>
 
 *Screenshots are the real portal running on made-up sample data (`python tools/sample_portal.py`, then `python tools/shots.py out/`). Names, addresses and numbers are placeholders.*
 
