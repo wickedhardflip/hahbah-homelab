@@ -17,7 +17,7 @@ window.HOMELAB_SNAPSHOT = {
 
   nodes: [
     { id: "isp", kind: "isp", label: "Internet", tier: 0, status: "good",
-      meta: { "Last speed test": "160.4 down / 131.9 up Mbps", "Tested": "Today 12:11 AM", "Source": "speedtest-cli via LegacyMonitor" } },
+      meta: { "Last speed test": "160.4 down / 131.9 up Mbps", "Tested": "Today 12:11 AM", "Source": "Ookla speedtest via LegacyMonitor" } },
     { id: "router", kind: "router", label: "Eero Gateway", tier: 1, status: "good",
       meta: { "Role": "Home router + Wi-Fi", "Ping": "5.62 ms", "Checked": "5:06 PM" } },
     { id: "central", kind: "host", label: "Central", sublabel: "mini PC · plex", tier: 1, status: "good",

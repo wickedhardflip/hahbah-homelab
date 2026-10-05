@@ -45,7 +45,7 @@ def test_ping_hosts_runs_each_target():
 
 
 def test_parse_speedtest_json():
-    j = json.dumps({"download": 203_000_000.0, "upload": 189_230_000.0, "ping": 15.468, "timestamp": "2026-10-01T04:10:54.369567Z"})
+    j = json.dumps({"ping": {"latency": 15.468}, "download": {"bandwidth": 25_375_000}, "upload": {"bandwidth": 23_653_750}})
     assert parse_speedtest(j, NOW) == {"download_mbps": 203.0, "upload_mbps": 189.2, "latency_ms": 15.5, "tested_at": "2026-10-02T05:00:00Z"}
 
 

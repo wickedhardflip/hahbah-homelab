@@ -264,7 +264,7 @@ def apply_speed(doc: dict, snap: dict, nodes: dict, alerts: list, tz: str, media
     s = doc["data"]
     isp["meta"]["Last speed test"] = f"{s['download_mbps']:.1f} down / {s['upload_mbps']:.1f} up Mbps"
     isp["meta"]["Tested"] = _local(s["tested_at"], tz)
-    isp["meta"]["Source"] = "speedtest-cli, daily at 4:10 AM"
+    isp["meta"]["Source"] = "Ookla speedtest, daily at 4:10 AM"
     if _usable(doc) and median and s["download_mbps"] < SLOW_FRACTION * median:
         _alert(alerts, "live-speed", "warn", "isp", "slow_speed",
                f"The internet speed test came in at {s['download_mbps']:.0f} Mbps, well under the usual {median:.0f}.")

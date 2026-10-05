@@ -125,13 +125,14 @@ def smart_all(stdout: str, now: datetime) -> dict:
 
 # ---------- internet speed test ----------
 def parse_speedtest(stdout: str, now: datetime) -> dict:
+    """Ookla CLI `-f json`: bandwidth is bytes per second."""
     j = json.loads(stdout)
-    return {"download_mbps": round(j["download"] / 1e6, 1), "upload_mbps": round(j["upload"] / 1e6, 1),
-            "latency_ms": round(float(j["ping"]), 1), "tested_at": _z(now)}
+    return {"download_mbps": round(j["download"]["bandwidth"] * 8 / 1e6, 1), "upload_mbps": round(j["upload"]["bandwidth"] * 8 / 1e6, 1),
+            "latency_ms": round(float(j["ping"]["latency"]), 1), "tested_at": _z(now)}
 
 
 def speed_test(now: datetime, run=default_run) -> dict:
-    code, out = run(["speedtest-cli", "--json", "--secure"], 120)
+    code, out = run(["speedtest", "--accept-license", "--accept-gdpr", "-f", "json"], 120)
     if code != 0 or not out.strip():
-        raise RuntimeError(f"speedtest-cli exit {code}")
+        raise RuntimeError(f"speedtest exit {code}")
     return parse_speedtest(out, now)

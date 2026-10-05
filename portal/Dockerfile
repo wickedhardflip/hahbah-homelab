@@ -4,6 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 RUN useradd --uid 1000 --create-home app
 # collector tools: ssh (NAS stats, restricted key), ping (reachability), msmtp (sends the portal's email outbox)
 RUN apt-get update && apt-get install -y --no-install-recommends openssh-client iputils-ping msmtp && rm -rf /var/lib/apt/lists/*
+# Ookla's official speedtest CLI (the old speedtest-cli picked servers in Brazil). Pinned version, checksum verified.
+RUN python -c "import urllib.request as u,hashlib as h;d=u.urlopen('https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-x86_64.tgz',timeout=60).read();assert h.sha256(d).hexdigest()=='5690596c54ff9bed63fa3732f818a05dbc2db19ad36ed68f21ca5f64d5cfeeb7';open('/tmp/o.tgz','wb').write(d)"  && tar -xzf /tmp/o.tgz -C /usr/local/bin speedtest && rm /tmp/o.tgz
 WORKDIR /app
 COPY requirements.txt .
 # requirements.txt is compiled with hashes (see requirements.in): pip refuses any package whose hash differs
