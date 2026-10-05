@@ -1,0 +1,19 @@
+{
+ "status": "SUCCESS",
+ "count": 1,
+ "domains": [
+  {
+   "domain": "hahbah.com",
+   "status": "ACTIVE",
+   "tld": "com",
+   "createDate": "2026-09-30 17:32:45",
+   "expireDate": "2027-09-30 17:32:45",
+   "securityLock": 1,
+   "whoisPrivacy": 1,
+   "autoRenew": 1,
+   "apiAccess": 0,
+   "notLocal": 0
+  }
+ ],
+ "requestId": "01a0fa02-accf-7314-b0c3-2e19972a58fa"
+}

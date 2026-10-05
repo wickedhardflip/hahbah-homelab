@@ -1,0 +1,958 @@
+{
+ "schema": "homelab.snapshot/v1",
+ "site": "Home",
+ "ts": "2026-09-29T21:07:43Z",
+ "sources": [
+  {
+   "id": "host",
+   "label": "Mini PC over SSH (df, free, /proc/net/dev, systemctl, ss)",
+   "cadence": "one-time pull"
+  },
+  {
+   "id": "nas",
+   "label": "Synology NAS over SSH, read-only (/proc/stat x2 over 2s, /proc/meminfo, /proc/net/dev x2 over 5s, hwmon), pulled Sep 30",
+   "cadence": "one-time pull"
+  },
+  {
+   "id": "edge",
+   "label": "Porkbun API (domain + DNS records, read-only) and Caddy's certificate on central, checked Sep 30",
+   "cadence": "one-time pull"
+  }
+ ],
+ "thresholds": {
+  "disk_caution_pct": 80,
+  "disk_danger_pct": 90,
+  "mem_caution_pct": 85,
+  "latency_caution_ms": 500
+ },
+ "nodes": [
+  {
+   "id": "isp",
+   "kind": "isp",
+   "label": "Internet",
+   "tier": 0,
+   "status": "good",
+   "meta": {
+    "Last speed test": "160.4 down / 131.9 up Mbps",
+    "Tested": "Today 12:11 AM",
+    "Source": "speedtest-cli, daily at 4:10 AM"
+   }
+  },
+  {
+   "id": "router",
+   "kind": "router",
+   "label": "Eero Gateway",
+   "tier": 1,
+   "status": "good",
+   "meta": {
+    "Role": "Home router + Wi-Fi",
+    "Ping": "5.62 ms",
+    "Checked": "5:06 PM"
+   }
+  },
+  {
+   "id": "central",
+   "kind": "host",
+   "label": "Central",
+   "sublabel": "mini PC · plex",
+   "tier": 1,
+   "status": "good",
+   "meta": {
+    "Role": "Runs every app + Plex",
+    "CPU": "Intel Celeron N5095 · 4 cores",
+    "OS": "Ubuntu 26.04.1 LTS · kernel 7.0 (upgraded Sep 30)",
+    "Uptime": "22 days 5 h",
+    "Docker": "Not installed yet",
+    "Ping": "0.03 ms"
+   },
+   "stats": {
+    "cpu_pct": 26,
+    "load": [
+     1.03,
+     1.04,
+     1
+    ],
+    "cores": 4,
+    "mem": {
+     "total_gb": 7.04,
+     "used_gb": 1.04,
+     "cache_gb": 6.07,
+     "avail_gb": 6
+    },
+    "swap": {
+     "total_gb": 4,
+     "used_gb": 0.87
+    },
+    "temps_c": [
+     52,
+     27.8
+    ],
+    "disks": [
+     {
+      "mount": "/",
+      "size_gb": 115.8,
+      "used_gb": 34.4,
+      "pct": 32
+     },
+     {
+      "mount": "/boot/efi",
+      "size_gb": 1.05,
+      "used_gb": 0.01,
+      "pct": 1
+     }
+    ],
+    "nics": [
+     {
+      "name": "enp2s0 (wired)",
+      "rx_mbps": 0.01,
+      "tx_mbps": 0.003,
+      "rx_total_gb": 746.1,
+      "tx_total_gb": 72.8
+     },
+     {
+      "name": "wlp1s0 (Wi-Fi)",
+      "rx_mbps": 0,
+      "tx_mbps": 0,
+      "note": "unused"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nas",
+   "kind": "nas",
+   "label": "Synology NAS",
+   "tier": 1,
+   "status": "good",
+   "meta": {
+    "Model": "Synology DS416play",
+    "Role": "Media library + backups",
+    "CPU": "Intel Celeron N3060 · 2 cores",
+    "OS": "DSM 7.2.1-69057 · kernel 3.10",
+    "Uptime": "23 days 1 h",
+    "RAID": "RAID 5 · 4 drives",
+    "Ping": "0.13 ms"
+   },
+   "stats": {
+    "cpu_pct": 3,
+    "load": [
+     0.02,
+     0.04,
+     0.05
+    ],
+    "cores": 2,
+    "iowait_pct": 10,
+    "mem": {
+     "total_gb": 7.72,
+     "used_gb": 0.96,
+     "cache_gb": 6.63,
+     "avail_gb": 6.76
+    },
+    "swap": {
+     "total_gb": 6.63,
+     "used_gb": 0.58
+    },
+    "temps_c": [
+     46,
+     41
+    ],
+    "disks": [
+     {
+      "mount": "/volume1",
+      "size_gb": 10718,
+      "used_gb": 6037,
+      "pct": 57
+     }
+    ],
+    "nics": [
+     {
+      "name": "eth1 (wired)",
+      "rx_mbps": 0.0048,
+      "tx_mbps": 0.002,
+      "rx_total_gb": 86.1,
+      "tx_total_gb": 737.7
+     },
+     {
+      "name": "eth0",
+      "rx_mbps": 0,
+      "tx_mbps": 0,
+      "note": "unused (old 192.168.86.x subnet)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "pc",
+   "kind": "pc",
+   "label": "Windows PC",
+   "sublabel": "workstation",
+   "tier": 1,
+   "status": "unknown",
+   "meta": {
+    "Role": "Claude Code + Ollama",
+    "Monitoring": "Not monitored yet"
+   }
+  },
+  {
+   "id": "domain",
+   "kind": "domain",
+   "label": "hahbah.com",
+   "tier": 0,
+   "status": "good",
+   "meta": {
+    "Registrar": "Porkbun (DNS hosted there)",
+    "Registered": "Sep 30, 2026",
+    "Renews": "Sep 30, 2027 · auto-renew on",
+    "WHOIS privacy": "On",
+    "Transfer lock": "On",
+    "App names": "home. → central (192.168.4.5)",
+    "Through the Eero": "Resolves correctly",
+    "Other records": "Parking (root, www), email forwarding (MX ×2, SPF)"
+   }
+  },
+  {
+   "id": "caddy",
+   "kind": "gateway",
+   "label": "Caddy",
+   "sublabel": "front door · HTTPS",
+   "tier": 1,
+   "status": "good",
+   "meta": {
+    "Role": "Routes every *.hahbah.com name to its app and checks sign-in",
+    "Runs as": "Docker · homelab-caddy-1 on Central",
+    "Ports": "80, 443 (TCP + UDP)",
+    "Certificate": "*.hahbah.com · Let's Encrypt",
+    "Routes": "home.hahbah.com (test page)",
+    "Deploys": "Pulled from GitHub main every 5 min"
+   }
+  },
+  {
+   "id": "plex",
+   "kind": "app",
+   "label": "Plex",
+   "tier": 2,
+   "status": "good",
+   "meta": {
+    "Port": "32400",
+    "Runs as": "snap service",
+    "Memory": "3.56 GB",
+    "Health check": "HTTP 10.9 ms",
+    "Up since": "Sep 10"
+   }
+  },
+  {
+   "id": "jobs",
+   "kind": "app",
+   "label": "Example App",
+   "tier": 2,
+   "status": "good",
+   "url": "http://192.168.4.5:8080",
+   "meta": {
+    "Port": "8080",
+    "Runs as": "systemd · example-app",
+    "Memory": "17 MB",
+    "Health check": "HTTP 4.8 ms",
+    "Up since": "Sep 7",
+    "Login": "Own login (moves to single sign-on)"
+   }
+  },
+  {
+   "id": "social",
+   "kind": "app",
+   "label": "Sample Service",
+   "tier": 2,
+   "status": "unknown",
+   "url": "http://192.168.4.5:4434",
+   "meta": {
+    "Port": "4434 (listening)",
+    "Runs as": "systemd · sample-service",
+    "Memory": "101 MB",
+    "Health check": "None — LegacyMonitor doesn't check it",
+    "Up since": "Sep 7"
+   }
+  },
+  {
+   "id": "replexon",
+   "kind": "app",
+   "label": "RePlexOn",
+   "tier": 2,
+   "status": "good",
+   "url": "http://192.168.4.5:9847",
+   "meta": {
+    "Port": "9847",
+    "Runs as": "systemd · replexon",
+    "Memory": "19 MB",
+    "Health check": "HTTP 79.9 ms",
+    "Up since": "Sep 7",
+    "Job": "Backs Plex up to the NAS"
+   }
+  },
+  {
+   "id": "tautulli",
+   "kind": "app",
+   "label": "Tautulli",
+   "tier": 2,
+   "status": "unknown",
+   "meta": {
+    "Port": "8181 (Docker network only)",
+    "Runs as": "Docker · homelab-tautulli-1",
+    "Reads": "Plex activity and history",
+    "Login": "Portal (admins only) + Tautulli's own"
+   }
+  },
+  {
+   "id": "ollama",
+   "kind": "app",
+   "label": "Ollama",
+   "tier": 2,
+   "status": "unknown",
+   "meta": {
+    "Port": "11434",
+    "Models": "qwen2.5:3b, coder variants, llava",
+    "Health check": "Not monitored yet",
+    "Future": "Local LLM reads the portal API"
+   }
+  },
+  {
+   "id": "m_video",
+   "kind": "mount",
+   "label": "Video",
+   "tier": 3,
+   "status": "good",
+   "meta": {
+    "Path": "/mnt/video",
+    "Type": "NFS from NAS",
+    "Mounted": "Yes",
+    "Responsive": "Yes"
+   }
+  },
+  {
+   "id": "m_photo",
+   "kind": "mount",
+   "label": "Photo",
+   "tier": 3,
+   "status": "good",
+   "meta": {
+    "Path": "/mnt/photo",
+    "Type": "NFS from NAS",
+    "Mounted": "Yes",
+    "Responsive": "Yes"
+   }
+  },
+  {
+   "id": "m_music",
+   "kind": "mount",
+   "label": "Music",
+   "tier": 3,
+   "status": "good",
+   "meta": {
+    "Path": "/mnt/music",
+    "Type": "NFS from NAS",
+    "Mounted": "Yes",
+    "Responsive": "Yes"
+   }
+  },
+  {
+   "id": "m_books",
+   "kind": "mount",
+   "label": "Audiobooks",
+   "tier": 3,
+   "status": "good",
+   "meta": {
+    "Path": "/mnt/audiobooks",
+    "Type": "NFS from NAS",
+    "Mounted": "Yes",
+    "Responsive": "Yes"
+   }
+  },
+  {
+   "id": "sda",
+   "kind": "drive",
+   "label": "Drive 1",
+   "tier": 3,
+   "status": "good",
+   "meta": {
+    "Model": "WD Purple 4 TB",
+    "SMART": "Healthy",
+    "Temp": "29 °C",
+    "Reallocated sectors": "0",
+    "Power-on": "20,561 h (2.3 yrs)"
+   }
+  },
+  {
+   "id": "sdb",
+   "kind": "drive",
+   "label": "Drive 2",
+   "tier": 3,
+   "status": "good",
+   "meta": {
+    "Model": "WD Purple 4 TB",
+    "SMART": "Healthy",
+    "Temp": "29 °C",
+    "Reallocated sectors": "0",
+    "Power-on": "20,560 h (2.3 yrs)"
+   }
+  },
+  {
+   "id": "sdc",
+   "kind": "drive",
+   "label": "Drive 3",
+   "tier": 3,
+   "status": "good",
+   "meta": {
+    "Model": "WD Purple 4 TB",
+    "SMART": "Healthy",
+    "Temp": "29 °C",
+    "Reallocated sectors": "0",
+    "Power-on": "20,561 h (2.3 yrs)"
+   }
+  },
+  {
+   "id": "sdd",
+   "kind": "drive",
+   "label": "Drive 4",
+   "tier": 3,
+   "status": "good",
+   "meta": {
+    "Model": "WD Purple 4 TB",
+    "SMART": "Healthy",
+    "Temp": "29 °C",
+    "Reallocated sectors": "0",
+    "Power-on": "20,561 h (2.3 yrs)"
+   }
+  }
+ ],
+ "links": [
+  {
+   "id": "wan",
+   "a": "isp",
+   "b": "router",
+   "kind": "wan",
+   "capacity_mbps": 160,
+   "a_to_b_mbps": null,
+   "b_to_a_mbps": null,
+   "util_pct": null,
+   "status": "good",
+   "meta": {
+    "Note": "Live WAN rate not collected yet; capacity from last speed test"
+   }
+  },
+  {
+   "id": "lan_central",
+   "a": "router",
+   "b": "central",
+   "kind": "trunk",
+   "capacity_mbps": 1000,
+   "a_to_b_mbps": 0.01,
+   "b_to_a_mbps": 0.003,
+   "util_pct": 0.001,
+   "status": "good",
+   "meta": {
+    "Measured at": "Central enp2s0, 5-second counter delta"
+   }
+  },
+  {
+   "id": "lan_nas",
+   "a": "router",
+   "b": "nas",
+   "kind": "trunk",
+   "capacity_mbps": 1000,
+   "a_to_b_mbps": 0.0048,
+   "b_to_a_mbps": 0.002,
+   "util_pct": 0.0007,
+   "status": "good",
+   "meta": {
+    "Measured at": "NAS eth1, 5-second counter delta (Sep 30)"
+   }
+  },
+  {
+   "id": "lan_pc",
+   "a": "router",
+   "b": "pc",
+   "kind": "trunk",
+   "capacity_mbps": 1000,
+   "a_to_b_mbps": null,
+   "b_to_a_mbps": null,
+   "util_pct": null,
+   "status": "unknown",
+   "meta": {
+    "Note": "Not monitored yet"
+   }
+  },
+  {
+   "id": "dns",
+   "a": "domain",
+   "b": "isp",
+   "kind": "dns",
+   "status": "good",
+   "meta": {
+    "What": "Public DNS at Porkbun; names point at LAN addresses, so nothing is exposed"
+   }
+  },
+  {
+   "id": "gw1",
+   "a": "central",
+   "b": "caddy",
+   "kind": "edge",
+   "status": "good",
+   "meta": {
+    "What": "Caddy runs on Central and fronts the web apps"
+   }
+  },
+  {
+   "id": "app_plex",
+   "a": "central",
+   "b": "plex",
+   "kind": "host",
+   "status": "good",
+   "meta": {
+    "Note": "Plex runs on Central"
+   }
+  },
+  {
+   "id": "app_tautulli",
+   "a": "plex",
+   "b": "tautulli",
+   "kind": "host",
+   "status": "good",
+   "meta": {
+    "Note": "Tautulli watches Plex"
+   }
+  },
+  {
+   "id": "app_jobs",
+   "a": "central",
+   "b": "jobs",
+   "kind": "host",
+   "status": "good",
+   "meta": {
+    "Note": "Hosted on Central"
+   }
+  },
+  {
+   "id": "app_social",
+   "a": "jobs",
+   "b": "social",
+   "kind": "host",
+   "status": "good",
+   "meta": {
+    "Note": "Hosted on Central"
+   }
+  },
+  {
+   "id": "nfs1",
+   "a": "central",
+   "b": "m_video",
+   "kind": "storage",
+   "status": "good",
+   "meta": {
+    "Protocol": "NFS (read-only exports)",
+    "LAN read test": "98.4 (LegacyMonitor 'lan' result)"
+   }
+  },
+  {
+   "id": "nfs2",
+   "a": "m_video",
+   "b": "m_photo",
+   "kind": "storage",
+   "status": "good",
+   "meta": {
+    "Protocol": "NFS"
+   }
+  },
+  {
+   "id": "nfs3",
+   "a": "m_photo",
+   "b": "m_music",
+   "kind": "storage",
+   "status": "good",
+   "meta": {
+    "Protocol": "NFS"
+   }
+  },
+  {
+   "id": "nfs4",
+   "a": "m_music",
+   "b": "m_books",
+   "kind": "storage",
+   "status": "good",
+   "meta": {
+    "Protocol": "NFS"
+   }
+  },
+  {
+   "id": "nfs5",
+   "a": "m_books",
+   "b": "nas",
+   "kind": "storage",
+   "status": "good",
+   "meta": {
+    "Protocol": "NFS"
+   }
+  },
+  {
+   "id": "bk1",
+   "a": "central",
+   "b": "replexon",
+   "kind": "host",
+   "status": "good",
+   "meta": {
+    "Note": "RePlexOn runs on Central"
+   }
+  },
+  {
+   "id": "bk2",
+   "a": "replexon",
+   "b": "nas",
+   "kind": "backup",
+   "status": "good",
+   "meta": {
+    "Schedule": "Nightly Plex backup to NAS"
+   }
+  },
+  {
+   "id": "dr1",
+   "a": "nas",
+   "b": "sda",
+   "kind": "drive",
+   "status": "good",
+   "meta": {}
+  },
+  {
+   "id": "dr2",
+   "a": "sda",
+   "b": "sdb",
+   "kind": "drive",
+   "status": "good",
+   "meta": {}
+  },
+  {
+   "id": "dr3",
+   "a": "sdb",
+   "b": "sdc",
+   "kind": "drive",
+   "status": "good",
+   "meta": {}
+  },
+  {
+   "id": "dr4",
+   "a": "sdc",
+   "b": "sdd",
+   "kind": "drive",
+   "status": "good",
+   "meta": {}
+  },
+  {
+   "id": "ai1",
+   "a": "pc",
+   "b": "ollama",
+   "kind": "host",
+   "status": "unknown",
+   "planned": true,
+   "meta": {
+    "Note": "Planned: chat UI + LLM tools"
+   }
+  }
+ ],
+ "alerts": [
+  {
+   "id": "a2",
+   "severity": "info",
+   "target": "social",
+   "kind": "unmonitored",
+   "message": "Sample Service is running (port 4434 is listening) but nothing health-checks it.",
+   "meta": {}
+  },
+  {
+   "id": "a3",
+   "severity": "info",
+   "target": "pc",
+   "kind": "unmonitored",
+   "message": "The Windows PC and Ollama aren't monitored yet.",
+   "meta": {}
+  }
+ ],
+ "layout": {
+  "lines": [
+   {
+    "id": "red",
+    "name": "Red Line",
+    "what": "Your domain, the internet and the home router",
+    "links": [
+     "dns",
+     "wan",
+     "lan_central"
+    ]
+   },
+   {
+    "id": "green",
+    "name": "Green Line",
+    "what": "Web apps on Central, served through Caddy",
+    "links": [
+     "gw1",
+     "app_jobs",
+     "app_social"
+    ]
+   },
+   {
+    "id": "orange",
+    "name": "Orange Line",
+    "what": "Plex media server",
+    "links": [
+     "app_plex",
+     "app_tautulli"
+    ]
+   },
+   {
+    "id": "blue",
+    "name": "Blue Line",
+    "what": "NFS media mounts, Central to NAS",
+    "links": [
+     "nfs1",
+     "nfs2",
+     "nfs3",
+     "nfs4",
+     "nfs5"
+    ]
+   },
+   {
+    "id": "purple",
+    "name": "Commuter Rail",
+    "what": "Nightly Plex backups to the NAS",
+    "links": [
+     "bk1",
+     "bk2"
+    ]
+   },
+   {
+    "id": "teal",
+    "name": "Drive Spur",
+    "what": "Physical drives in the NAS",
+    "links": [
+     "dr1",
+     "dr2",
+     "dr3",
+     "dr4"
+    ]
+   },
+   {
+    "id": "silver",
+    "name": "Silver Line",
+    "what": "Home LAN to the NAS and PC",
+    "links": [
+     "lan_nas",
+     "lan_pc"
+    ]
+   },
+   {
+    "id": "gold",
+    "name": "AI Shuttle",
+    "what": "Local LLM (planned)",
+    "links": [
+     "ai1"
+    ]
+   }
+  ],
+  "pos": {
+   "domain": [
+    180,
+    80
+   ],
+   "caddy": [
+    600,
+    255
+   ],
+   "isp": [
+    360,
+    80
+   ],
+   "router": [
+    360,
+    230
+   ],
+   "central": [
+    600,
+    400
+   ],
+   "nas": [
+    980,
+    400
+   ],
+   "pc": [
+    150,
+    400
+   ],
+   "plex": [
+    770,
+    230
+   ],
+   "jobs": [
+    470,
+    530
+   ],
+   "social": [
+    470,
+    625
+   ],
+   "replexon": [
+    760,
+    560
+   ],
+   "ollama": [
+    150,
+    560
+   ],
+   "m_video": [
+    690,
+    400
+   ],
+   "m_photo": [
+    760,
+    400
+   ],
+   "m_music": [
+    830,
+    400
+   ],
+   "m_books": [
+    900,
+    400
+   ],
+   "sda": [
+    1090,
+    510
+   ],
+   "sdb": [
+    1090,
+    580
+   ],
+   "sdc": [
+    1090,
+    650
+   ],
+   "sdd": [
+    1090,
+    720
+   ],
+   "tautulli": [
+    860,
+    230
+   ]
+  },
+  "via": {
+   "lan_central": [
+    [
+     360,
+     250
+    ],
+    [
+     510,
+     400
+    ]
+   ],
+   "lan_pc": [
+    [
+     360,
+     250
+    ],
+    [
+     210,
+     400
+    ]
+   ],
+   "lan_nas": [
+    [
+     430,
+     160
+    ],
+    [
+     900,
+     160
+    ],
+    [
+     980,
+     240
+    ]
+   ],
+   "app_plex": [],
+   "bk2": [
+    [
+     920,
+     560
+    ],
+    [
+     980,
+     500
+    ]
+   ]
+  },
+  "badge_at": {
+   "central": [
+    0,
+    50
+   ]
+  },
+  "labels": {
+   "domain": "below",
+   "caddy": "left",
+   "central": "above-left",
+   "nas": "above-right",
+   "router": "left",
+   "isp": "left",
+   "pc": "above",
+   "plex": "above",
+   "jobs": "left",
+   "social": "left",
+   "replexon": "below",
+   "ollama": "right",
+   "m_video": "above",
+   "m_photo": "below",
+   "m_music": "above",
+   "m_books": "below",
+   "sda": "right",
+   "sdb": "right",
+   "sdc": "right",
+   "sdd": "right",
+   "tautulli": "above"
+  }
+ },
+ "layout_warnings": [],
+ "edge": {
+  "cert": {
+   "names": [
+    "*.hahbah.com"
+   ],
+   "issuer": "Let's Encrypt (YE1)",
+   "issued": "2026-09-30T16:44:14Z",
+   "expires": "2026-12-29T16:44:13Z",
+   "renews_at_days_left": 30
+  },
+  "domain": {
+   "name": "hahbah.com",
+   "registrar": "Porkbun",
+   "expires": "2027-09-30T17:32:45Z",
+   "auto_renew": true,
+   "whois_privacy": true,
+   "transfer_lock": true
+  },
+  "dns": {
+   "expected": [
+    {
+     "name": "home.hahbah.com",
+     "ip": "192.168.4.5",
+     "host": "central"
+    }
+   ],
+   "wrong": [],
+   "missing": [],
+   "via_eero_ok": true
+  },
+  "deploy": {
+   "commit": "2802e07",
+   "message": "Phase 1: Caddy with Porkbun DNS plugin, wildcard cert, hello at home.hahbah.com",
+   "at": "2026-09-30T17:42:34Z",
+   "ok": true,
+   "interval_min": 5
+  }
+ }
+}

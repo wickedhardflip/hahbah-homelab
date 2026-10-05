@@ -1,0 +1,14 @@
+{"response": {"result": "success", "message": null, "data": {
+  "stream_count": "2", "stream_count_transcode": 1, "total_bandwidth": 12500,
+  "sessions": [
+    {"user": "alice", "user_id": 11, "full_title": "Star Show - Pilot", "media_type": "episode",
+     "player": "Living Room TV", "product": "Plex for Roku", "transcode_decision": "transcode",
+     "video_decision": "transcode", "transcode_hw_requested": 0, "quality_profile": "4 Mbps 720p",
+     "bandwidth": "4500", "progress_percent": "37", "grandparent_thumb": "/library/metadata/100/thumb/1700000000",
+     "thumb": "/library/metadata/101/thumb/1700000001", "stream_video_decision": "transcode",
+     "transcode_reason": "Video codec not supported"},
+    {"user": "bob", "user_id": 12, "full_title": "Big Movie", "media_type": "movie",
+     "player": "iPhone", "product": "Plex for iOS", "transcode_decision": "direct play",
+     "quality_profile": "Original", "bandwidth": "8000", "progress_percent": "80",
+     "thumb": "/library/metadata/200/thumb/1700000002"}
+  ]}}}

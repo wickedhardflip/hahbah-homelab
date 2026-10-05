@@ -1,0 +1,1811 @@
+<!doctype html>
+<html lang="en" data-theme="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homelab Transit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<style>
+:root, [data-theme="day"] {
+  --bg: #efece3; --panel: #ffffff; --panel-2: #f7f5ef; --border: #dcd7c9;
+  --ink: #1b1d22; --muted: #686c75; --map: #f8f6f0; --grid: #e7e3d7; --grid-2: #ddd8ca;
+  --halo: #f8f6f0; --station: #ffffff; --hub-ring: #1b1d22;
+  --good: #1f7a45; --warn: #9a5800; --crit: #c42b2b; --info: #3f5f8f; --unknown: #8c909a;
+  --warn-bg: #fff3dc; --crit-bg: #fde7e7; --good-bg: #e5f4ea; --info-bg: #e8eef8;
+  --l-red: #d8322e; --l-green: #16854a; --l-orange: #e27b0c; --l-blue: #1f5fbf;
+  --l-purple: #7e3f98; --l-teal: #0b7b7e; --l-silver: #7a838c; --l-gold: #a88625; --l-other: #9aa0a6;
+  --brand: #1b1d22; --brand-ink: #ffffff;
+  --land: #ece7da; --block: #e4dece; --road: #faf8f2; --park: #cfe2b4; --water: #a9cfe6; --shore: #dcebef;
+  --shadow: 0 1px 2px rgba(20,20,30,.06), 0 4px 16px rgba(20,20,30,.06);
+}
+[data-theme="midnight"] {
+  --bg: #070b16; --panel: #0f1528; --panel-2: #131a31; --border: #222c4a;
+  --ink: #e9edf6; --muted: #8e97ad; --map: #0a1022; --grid: #121a33; --grid-2: #182243;
+  --halo: #0a1022; --station: #0a1022; --hub-ring: #e9edf6;
+  --good: #3ccf7e; --warn: #ffb547; --crit: #ff5d57; --info: #7aa7ff; --unknown: #6f7890;
+  --warn-bg: #3a2a0c; --crit-bg: #3d1414; --good-bg: #0f2e1d; --info-bg: #15223f;
+  --l-red: #ff5a52; --l-green: #2fc973; --l-orange: #ffa133; --l-blue: #4f90ff;
+  --l-purple: #bb74e3; --l-teal: #2cc6c8; --l-silver: #a9b3bf; --l-gold: #e7c55a; --l-other: #7d8594;
+  --brand: #e9edf6; --brand-ink: #070b16;
+  --land: #0c1326; --block: #111a33; --road: #1a2442; --park: #10271f; --water: #16406f; --shore: #10284a;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.35);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.4 "Overpass", system-ui, sans-serif; }
+.mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+button { font: inherit; color: inherit; }
+
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px 8px; }
+.brand { display: flex; align-items: center; gap: 12px; background: var(--brand); color: var(--brand-ink); padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 22px; letter-spacing: -.01em; }
+.brand .dots { display: flex; gap: 5px; }
+.brand .dots i { width: 13px; height: 13px; border-radius: 50%; display: block; border: 2px solid var(--brand-ink); }
+.brand a { color: inherit; text-decoration: none; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 7px 14px; min-width: 92px; box-shadow: var(--shadow); }
+.stat b { display: block; font: 600 20px/1.1 "JetBrains Mono", monospace; }
+.stat span { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.stat.crit b { color: var(--crit); } .stat.warn b { color: var(--warn); }
+.spacer { flex: 1; }
+.user { font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.user a { color: var(--muted); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 12px; align-items: center; }
+.btn { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.btn kbd { font: 12px "JetBrains Mono", monospace; opacity: .6; margin-left: 4px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.seg .btn { border: 0; border-radius: 0; }
+.sim-tag { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--warn); text-transform: uppercase; display: none; }
+.sim-tag.on { display: inline; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; padding: 0 20px 20px; }
+.layout.wide { grid-template-columns: minmax(0, 1fr); }
+.layout.wide .side { display: none; }
+.mapwrap { position: relative; background: var(--map); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); height: calc(100vh - 170px); min-height: 520px; }
+.mapwrap svg { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; user-select: none; }
+.mapwrap svg.dragging { cursor: grabbing; }
+.hint { position: absolute; left: 12px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: none; }
+.hint span { background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 12px; color: var(--muted); }
+
+.label { font-weight: 700; font-size: 13px; fill: var(--ink); paint-order: stroke; stroke: var(--halo); stroke-width: 5px; stroke-linejoin: round; pointer-events: none; }
+.label.hub { font-size: 16px; font-weight: 800; }
+.label.sub { font-size: 12px; font-weight: 600; fill: var(--muted); }
+.track { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.track.planned { stroke-dasharray: 2 10; }
+.track-hit { fill: none; stroke: transparent; stroke-width: 22; cursor: pointer; }
+.track-hit:hover + .track, .track.sel { filter: brightness(1.15); }
+[data-theme="midnight"] .tracks { filter: url(#glow); }
+.station { cursor: pointer; }
+.station:focus { outline: none; }
+.station:focus-visible .ring, .station.sel .ring { stroke: var(--info); stroke-width: 3; }
+.train { pointer-events: none; }
+[data-theme="midnight"] .train rect { fill: var(--ink); }
+.badge-text { font: 800 12px "Overpass", sans-serif; fill: #fff; pointer-events: none; }
+
+.side { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 14px 16px; }
+.card h2 { margin: 0 0 10px; font-size: 16px; font-weight: 800; display: flex; justify-content: space-between; align-items: baseline; }
+.card h2 small { font: 12px "JetBrains Mono", monospace; color: var(--muted); font-weight: 400; }
+.line-row { display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 7px 0; border-top: 1px solid var(--border); cursor: pointer; }
+.line-row:first-of-type { border-top: 0; }
+.roundel { width: 32px; height: 32px; border-radius: 50%; font-weight: 800; font-size: 12px; display: grid; place-items: center; border: 2.5px solid var(--panel); box-shadow: 0 0 0 1.5px var(--border); }
+.line-row b { display: block; font-size: 14px; }
+.st { font-size: 13px; font-weight: 700; }
+.st.good { color: var(--good); } .st.warn { color: var(--warn); } .st.crit { color: var(--crit); } .st.unknown, .st.info { color: var(--muted); }
+.line-row p { margin: 1px 0 0; font-size: 12px; color: var(--muted); }
+.notice { border-left: 4px solid var(--border); padding: 6px 10px; margin: 8px 0; cursor: pointer; border-radius: 0 6px 6px 0; background: var(--panel-2); }
+.notice.crit { border-color: var(--crit); } .notice.warn { border-color: var(--warn); } .notice.info { border-color: var(--info); }
+.notice .hd { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-weight: 800; font-size: 13.5px; }
+.notice p { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
+.pill { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.crit { background: var(--crit-bg); color: var(--crit); } .pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.info, .pill.unknown { background: var(--info-bg); color: var(--info); } .pill.good { background: var(--good-bg); color: var(--good); }
+.pill.drill { background: var(--ink); color: var(--panel); }
+.foot { font-size: 12px; color: var(--muted); }
+.foot a { color: var(--info); cursor: pointer; }
+
+.detail { position: absolute; right: 12px; top: 12px; width: min(340px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: none; }
+.detail.open { display: block; }
+.detail .close { position: absolute; right: 10px; top: 8px; border: 0; background: none; font-size: 20px; cursor: pointer; color: var(--muted); }
+.detail h3 { margin: 0; font-size: 20px; font-weight: 800; padding-right: 24px; }
+.detail .kind { color: var(--muted); font-size: 12.5px; margin-bottom: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.chip { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; margin: 10px 0 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.bar { margin: 8px 0 0; font-size: 12.5px; }
+.bar .row { display: flex; justify-content: space-between; }
+.bar .track-bg { height: 7px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 99px; overflow: hidden; margin-top: 3px; }
+.bar .fill { height: 100%; background: var(--good); }
+.bar .fill.warn { background: var(--warn); } .bar .fill.crit { background: var(--crit); }
+.sec { font-size: 12px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 14px 0 2px; }
+.open-app { display: inline-block; margin-top: 12px; background: var(--ink); color: var(--panel); text-decoration: none; font-weight: 800; padding: 7px 14px; border-radius: 8px; font-size: 13px; }
+.alert-box { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.alert-box.crit { background: var(--crit-bg); } .alert-box.warn { background: var(--warn-bg); } .alert-box.info { background: var(--info-bg); }
+
+dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); max-width: min(960px, calc(100vw - 32px)); width: 100%; padding: 20px 24px; max-height: 85vh; }
+dialog::backdrop { background: rgba(5,8,18,.45); }
+dialog h2 { margin: 0 0 8px; }
+dialog h3 { margin: 18px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+td.num { font-family: "JetBrains Mono", monospace; }
+.tablewrap { overflow-x: auto; }
+.legend-grid { display: grid; grid-template-columns: 56px 1fr; gap: 8px 14px; align-items: center; font-size: 13.5px; }
+.dlg-close { float: right; }
+
+/* ---------- views: map / 3d / noc ---------- */
+.view3d { position: absolute; inset: 0; display: none; }
+.view3d canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.view3d canvas:active { cursor: grabbing; }
+.view3d.pick canvas { cursor: pointer; }
+.mapwrap[data-view="3d"] svg { visibility: hidden; }
+.mapwrap[data-view="3d"] .view3d { display: block; }
+.lbl-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lbl3d { position: absolute; left: 0; top: 0; font-weight: 700; font-size: 12px; line-height: 1.2; color: var(--ink); white-space: nowrap; text-align: center; will-change: transform;
+  text-shadow: 0 0 3px var(--halo), 0 0 3px var(--halo), 0 0 6px var(--halo); }
+.lbl3d.hub { font-size: 15px; font-weight: 800; }
+.lbl3d small { display: block; font-weight: 600; font-size: 11px; color: var(--muted); }
+.lbl3d .pill { display: inline-block; margin-top: 3px; text-shadow: none; }
+.vignette { position: absolute; inset: 0; pointer-events: none; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  -webkit-mask-image: radial-gradient(ellipse 60% 58% at 50% 50%, transparent 72%, #000 100%); mask-image: radial-gradient(ellipse 60% 58% at 50% 50%, transparent 72%, #000 100%); }
+.lbl3d[data-side="left"] { text-align: right; } .lbl3d[data-side="right"] { text-align: left; }
+.chip3d { display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; padding: 2px 9px 2px 3px; border-radius: 999px; font-size: 12px; font-weight: 800; text-shadow: none; color: var(--panel); background: var(--warn); box-shadow: var(--shadow); }
+.chip3d.crit { background: var(--crit); }
+.chip3d i { font-style: normal; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); color: var(--warn); font-size: 12px; line-height: 1; }
+.chip3d.crit i { color: var(--crit); }
+.only-3d { display: none; }
+body[data-view="3d"] .only-3d { display: inline-flex; }
+.gl-fail { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); padding: 24px; text-align: center; }
+.mapwrap .detail { z-index: 5; }
+.hint { z-index: 4; }
+
+body[data-view="noc"] .layout, body[data-view="noc"] .stats, body[data-view="noc"] .map-only { display: none; }
+body[data-view="noc"] .detail { position: fixed; top: 96px; right: 20px; max-height: calc(100vh - 116px); z-index: 20; }
+.noc { display: none; padding: 0 20px 20px; }
+body[data-view="noc"] .noc { display: block; }
+.noc-bar { display: grid; grid-template-columns: minmax(250px, 1.6fr) repeat(5, minmax(84px, 1fr)) minmax(150px, 1fr); gap: 8px; margin-bottom: 14px; }
+.noc-overall { border-radius: 6px; padding: 10px 16px; color: #fff; background: var(--good); display: flex; flex-direction: column; justify-content: center; }
+.noc-overall b { font-size: 21px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; line-height: 1.1; }
+.noc-overall span { font-size: 12.5px; opacity: .92; }
+.noc-overall.warn { background: var(--warn); } .noc-overall.crit { background: var(--crit); }
+[data-theme="midnight"] .noc-overall { color: #070b16; }
+.noc-count { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
+.noc-count b { display: block; font: 600 26px/1.1 "JetBrains Mono", monospace; }
+.noc-count span, .noc-clock span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 800; }
+.noc-count.crit b { color: var(--crit); } .noc-count.warn b { color: var(--warn); } .noc-count.good b { color: var(--good); } .noc-count.unknown b { color: var(--muted); }
+.noc-clock { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: "JetBrains Mono", monospace; }
+.noc-clock div { font-size: 12px; color: var(--muted); } .noc-clock div b { font-size: 18px; color: var(--ink); font-weight: 600; }
+.noc-sec { margin: 0 0 14px; }
+.noc-sec > h2 { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; display: flex; gap: 10px; align-items: center; }
+.noc-sec > h2::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
+.noc-sec > h2 small { font: 11px "JetBrains Mono", monospace; letter-spacing: 0; text-transform: none; }
+.noc-hosts { display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 8px; }
+.hostp { background: var(--panel); border: 1px solid var(--border); border-top: 4px solid var(--good); border-radius: 6px; padding: 10px 12px; cursor: pointer; text-align: left; }
+.hostp.warn { border-top-color: var(--warn); } .hostp.crit { border-top-color: var(--crit); } .hostp.unknown { border-top-color: var(--unknown); }
+.hostp:hover, .tile:hover { border-color: var(--muted); }
+.hostp .hd { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 15px; }
+.hostp .hd .stw { margin-left: auto; font: 700 11.5px "JetBrains Mono", monospace; }
+.hostp .role { font-size: 12px; color: var(--muted); margin: 1px 0 4px; }
+.hostp .nodata { font: 12px "JetBrains Mono", monospace; color: var(--muted); padding: 14px 0 6px; }
+.led { width: 10px; height: 10px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px var(--good-bg); flex: none; }
+.led.warn { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-bg); } .led.crit { background: var(--crit); box-shadow: 0 0 0 3px var(--crit-bg); }
+.led.unknown { background: transparent; border: 2px dashed var(--unknown); box-shadow: none; }
+.stw.good { color: var(--good); } .stw.warn { color: var(--warn); } .stw.crit { color: var(--crit); } .stw.unknown { color: var(--muted); }
+.meter { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; font-size: 12px; margin-top: 5px; }
+.meter > span:first-child { color: var(--muted); font-weight: 700; }
+.meter .v { font-family: "JetBrains Mono", monospace; text-align: right; font-size: 11.5px; white-space: nowrap; min-width: 64px; }
+.meter .tb { height: 9px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 2px; position: relative; overflow: hidden; }
+.meter .tb i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--good); }
+.meter .tb i.warn { background: var(--warn); } .meter .tb i.crit { background: var(--crit); }
+.meter .tb u { position: absolute; top: -1px; bottom: -1px; width: 1px; background: var(--muted); opacity: .6; }
+.hostp .kvs { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border); font: 11.5px/1.6 "JetBrains Mono", monospace; color: var(--muted); }
+.hostp .kvs b { color: var(--ink); font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; }
+.tile { background: var(--panel); border: 1px solid var(--border); border-left: 5px solid var(--good); border-radius: 4px; padding: 6px 10px; cursor: pointer; text-align: left; min-width: 0; }
+.tile.warn { border-left-color: var(--warn); } .tile.crit { border-left-color: var(--crit); background: var(--crit-bg); } .tile.unknown { border-left-color: var(--unknown); border-left-style: dashed; }
+.tile .t1 { display: flex; justify-content: space-between; gap: 6px; font-weight: 800; font-size: 13.5px; }
+.tile .t1 .stw { font: 700 11px "JetBrains Mono", monospace; }
+.tile .m { font: 11px "JetBrains Mono", monospace; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-group { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 4px; }
+.noc-bottom { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px; }
+.console { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; overflow-x: auto; }
+.console table { font-size: 12.5px; }
+.console td, .console th { padding: 6px 10px; }
+.console tr.acked td { opacity: .45; }
+.console td.num { white-space: nowrap; }
+.console tbody tr.crit:not(.acked) td:first-child { box-shadow: inset 4px 0 0 var(--crit); }
+.console tbody tr.warn:not(.acked) td:first-child { box-shadow: inset 4px 0 0 var(--warn); }
+.console tbody tr.info td:first-child { box-shadow: inset 4px 0 0 var(--info); }
+.console tbody tr { cursor: pointer; }
+.console tbody tr:hover td { background: var(--panel-2); }
+.console .empty { padding: 18px; color: var(--muted); font: 12.5px "JetBrains Mono", monospace; }
+.ack { font: 700 11px "Overpass", sans-serif; border: 1px solid var(--border); background: var(--panel-2); border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+.spark { display: block; }
+.utilbar { height: 8px; width: 80px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 2px; position: relative; overflow: hidden; }
+.utilbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--info); min-width: 1px; }
+.noc-note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+@media (prefers-reduced-motion: no-preference) {
+  body.motion .led.crit, body.motion .console tbody tr.crit:not(.acked) td:first-child { animation: blink 1.1s steps(2, start) infinite; }
+}
+@keyframes blink { 50% { opacity: .35; } }
+@media (max-width: 1100px) {
+  .noc-bar { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .noc-overall { grid-column: 1 / -1; }
+  .noc-bottom { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 0 16px 16px; }
+  .top, .controls { padding-left: 16px; padding-right: 16px; }
+  .mapwrap { height: 70vh; }
+  .noc { padding: 0 16px 16px; }
+  .brand { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="dots" id="brandDots"></span><a href="index.html">Homelab Transit</a></div>
+  <div class="stats" id="stats"></div>
+  <div class="spacer"></div>
+  <div class="user">alex · <a href="login.html">Sign out</a></div>
+</header>
+
+<div class="controls">
+  <span class="seg" role="group" aria-label="View"><button class="btn" id="bVMap">Map <kbd>1</kbd></button><button class="btn" id="bV3d">3D <kbd>2</kbd></button><button class="btn" id="bVNoc">NOC <kbd>3</kbd></button></span>
+  <button class="btn" id="bMotion" aria-pressed="true">Motion <kbd>M</kbd></button>
+  <button class="btn" id="bDemo" aria-pressed="false">Demo traffic</button>
+  <span class="sim-tag" id="simTag">Simulated</span>
+  <button class="btn" id="bDrill" aria-pressed="false">Fire drill</button>
+  <span class="seg only-3d"><button class="btn" id="bRotL" aria-label="Rotate left">⟲ <kbd>Q</kbd></button><button class="btn" id="bRotR" aria-label="Rotate right">⟳ <kbd>E</kbd></button></span>
+  <button class="btn map-only" id="bReset">Reset view <kbd>H</kbd></button>
+  <button class="btn" id="bTable">Table <kbd>T</kbd></button>
+  <button class="btn" id="bLegend">Legend <kbd>L</kbd></button>
+  <button class="btn map-only" id="bWide" aria-pressed="false">Wide map <kbd>B</kbd></button>
+  <span class="seg"><button class="btn" id="bDay">Day</button><button class="btn" id="bNight">Midnight</button></span>
+</div>
+
+<main class="layout" id="layout">
+  <section class="mapwrap" id="mapwrap" aria-label="Homelab transit map">
+    <svg id="map" viewBox="30 40 1170 740" role="img" aria-label="Transit-style map of home network machines, apps, storage and drives"></svg>
+    <div class="view3d" id="view3d"></div>
+    <div class="hint"><span id="hintNav">Drag to pan · scroll to zoom · click anything</span><span id="hintTs"></span></div>
+    <div class="card detail" id="detail" role="dialog" aria-label="Details"></div>
+  </section>
+  <aside class="side">
+    <div class="card"><h2>Service status <small id="clock"></small></h2><div id="lines"></div></div>
+    <div class="card"><h2>Notices <small id="noticeCount"></small></h2><div id="notices"></div>
+      <div class="foot">Trains show measured traffic. <a id="aboutLink">What do the symbols mean?</a></div></div>
+  </aside>
+</main>
+
+<section class="noc" id="noc" aria-label="Network operations view"></section>
+
+<dialog id="dlgTable"><button class="btn dlg-close" data-close>Close <kbd>Esc</kbd></button><h2>Everything, as a table</h2><div id="tableBody" class="tablewrap"></div></dialog>
+<dialog id="dlgLegend"><button class="btn dlg-close" data-close>Close <kbd>Esc</kbd></button><h2>Legend</h2><div id="legendBody"></div></dialog>
+
+<script src="snapshot.js"></script>
+<script>
+(function () {
+  "use strict";
+  const S = window.HOMELAB_SNAPSHOT;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- tiny DOM helpers (no innerHTML) ----------
+  function build(ns, tag, attrs, kids) {
+    const el = ns ? document.createElementNS(ns, tag) : document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === "text") el.textContent = v;
+      else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v);
+    }
+    for (const c of [].concat(kids || [])) if (c != null) el.append(c);
+    return el;
+  }
+  const h = (t, a, k) => build(null, t, a, k);
+  const s = (t, a, k) => build(SVGNS, t, a, k);
+  const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); };
+
+  // ---------- storage-safe prefs ----------
+  const pref = {
+    get(k, d) { try { const v = localStorage.getItem("hlt." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem("hlt." + k, JSON.stringify(v)); } catch (e) {} }
+  };
+  const reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const state = {
+    theme: pref.get("theme", "day"),
+    motion: pref.get("motion", !reduced),
+    demo: false, drill: false, wide: pref.get("wide", false), selected: null,
+    view: "noc"   // the dashboard always opens on NOC; Map and 3D are one key away (1 / 2)
+  };
+  const listeners = [];
+  const notify = () => listeners.forEach((f) => { try { f(); } catch (e) { console.error(e); } });
+  const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  // ---------- model ----------
+  const nodes = Object.fromEntries(S.nodes.map((n) => [n.id, n]));
+  const links = Object.fromEntries(S.links.map((l) => [l.id, l]));
+  const L = S.layout;
+  const LINE_COLOR = { red: "--l-red", green: "--l-green", orange: "--l-orange", blue: "--l-blue", purple: "--l-purple", teal: "--l-teal", silver: "--l-silver", gold: "--l-gold", other: "--l-other" };
+  const lines = L.lines.slice();
+  const lineOf = {};
+  lines.forEach((ln) => ln.links.forEach((id) => { lineOf[id] = ln.id; }));
+  const orphans = S.links.filter((l) => !lineOf[l.id]).map((l) => l.id);
+  if (orphans.length) { lines.push({ id: "other", name: "Other links", what: "Links not assigned to a line", links: orphans }); orphans.forEach((id) => { lineOf[id] = "other"; }); }
+  const lineById = Object.fromEntries(lines.map((l) => [l.id, l]));
+  const color = (lineId) => `var(${LINE_COLOR[lineId] || "--l-other"})`;
+  const cssColor = (lineId) => getComputedStyle(document.documentElement).getPropertyValue(LINE_COLOR[lineId] || "--l-other").trim();
+  function inkFor(varName) {
+    const hex = getComputedStyle(document.documentElement).getPropertyValue(varName).trim().replace('#', '');
+    const c = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+    const lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    return (1.05 / (lum + 0.05)) >= 4.5 ? '#ffffff' : '#111318';
+  }
+  const lineInk = (lineId) => inkFor(LINE_COLOR[lineId] || '--l-other');
+  const HUB_KINDS = new Set(["host", "nas", "router", "pc", "isp", "gateway"]);
+  const isHub = (n) => HUB_KINDS.has(n.kind);
+
+  // Themed name + plain meaning for every alert kind.
+  const THEME = {
+    app_down:      { t: "Part suspended",  plain: "App is down" },
+    host_down:     { t: "Station closed",  plain: "Machine unreachable" },
+    mount_missing: { t: "Shuttle buses",   plain: "Storage mount missing" },
+    disk_high:     { t: "Minor delays",    plain: "Disk filling up" },
+    smart_warn:    { t: "Signal problems", plain: "Drive health warning" },
+    slow_speed:    { t: "Slow zone",       plain: "Internet slower than usual" },
+    mem_high:      { t: "Crowding",        plain: "Memory nearly full" },
+    os_eol:        { t: "Track work",      plain: "Maintenance needed" },
+    unmonitored:   { t: "No timetable",    plain: "Not monitored yet" },
+    cert_expiring: { t: "Ticket expiring", plain: "HTTPS certificate expiring" },
+    domain_expiring: { t: "Lease ending",  plain: "Domain registration expiring" },
+    dns_drift:     { t: "Wrong platform",  plain: "DNS record missing or wrong" },
+    deploy_failed: { t: "Signal failure",  plain: "Last deploy failed" }
+  };
+  const SEV_RANK = { crit: 3, warn: 2, info: 1, good: 0, unknown: 0 };
+  const PLAIN_SEV = { crit: "Danger", warn: "Caution", info: "Info" };
+
+  const DRILL = [
+    { id: "d1", severity: "crit", target: "jobs", kind: "app_down", message: "Example App stopped answering its health check (3 failed checks in a row)." },
+    { id: "d2", severity: "crit", target: "router", kind: "host_down", message: "Eero Gateway stopped answering ping." },
+    { id: "d3", severity: "crit", target: "m_music", kind: "mount_missing", message: "/mnt/music isn't mounted, so Plex can't read the music library." },
+    { id: "d4", severity: "warn", target: "nas", kind: "disk_high", message: "The NAS volume is 84% full (caution starts at 80%)." },
+    { id: "d5", severity: "warn", target: "sdc", kind: "smart_warn", message: "Drive 3 reports 8 reallocated sectors." },
+    { id: "d6", severity: "warn", target: "wan", kind: "slow_speed", message: "The internet speed test came in at 42 Mbps, well under the usual 160." },
+    { id: "d7", severity: "warn", target: "central", kind: "mem_high", message: "Central's memory is 91% used." },
+    { id: "d8", severity: "warn", target: "caddy", kind: "cert_expiring", message: "The *.hahbah.com certificate expires in 12 days. Caddy normally renews at 30, so renewal is failing." },
+    { id: "d9", severity: "warn", target: "domain", kind: "dns_drift", message: "jobs.hahbah.com points to 192.168.4.9, but the app list says it runs on Central (192.168.4.5)." }
+  ].map((a) => Object.assign({ drill: true }, a));
+
+  const alerts = () => S.alerts.concat(state.drill ? DRILL : []).slice().sort((a, b) => SEV_RANK[b.severity] - SEV_RANK[a.severity]);
+  const alertsFor = (id) => alerts().filter((a) => a.target === id);
+  const worst = (list) => list.reduce((w, a) => (SEV_RANK[a.severity] > SEV_RANK[w] ? a.severity : w), "good");
+  const targetLabel = (id) => (nodes[id] ? nodes[id].label : links[id] ? `${nodes[links[id].a].label} → ${nodes[links[id].b].label}` : id);
+
+  function nodeState(n) {
+    const w = worst(alertsFor(n.id).filter((a) => a.severity !== "info"));
+    if (w === "crit" || n.status === "crit") return "crit";
+    if (w === "warn" || n.status === "warn") return "warn";
+    if (n.status === "unknown") return "unknown";
+    return "good";
+  }
+
+  // A line's status: its links, its small stations, and only *critical* alerts at hub stations
+  // (a caution at a hub shows on the hub, not on every line through it).
+  function lineStatus(ln) {
+    const ids = new Set(ln.links);
+    const stationIds = new Set();
+    ln.links.forEach((id) => { stationIds.add(links[id].a); stationIds.add(links[id].b); });
+    const relevant = alerts().filter((a) => {
+      if (ids.has(a.target)) return true;
+      if (!stationIds.has(a.target)) return false;
+      return isHub(nodes[a.target]) ? a.severity === "crit" : a.severity !== "info";
+    });
+    const w = worst(relevant);
+    if (w !== "good") { const top = relevant.find((a) => a.severity === w); return { sev: w, text: THEME[top.kind].t, detail: top.message }; }
+    const allUnknown = ln.links.every((id) => links[id].status === "unknown" || links[id].planned);
+    if (allUnknown) return { sev: "unknown", text: "Not monitored", detail: ln.what };
+    return { sev: "good", text: "Good service", detail: ln.what };
+  }
+
+  // ---------- formatting ----------
+  const fmtRate = (m) => (m == null ? "not measured" : m < 1 ? `${(m * 1000).toFixed(0)} Kbps` : `${m.toFixed(1)} Mbps`);
+  const fmtGB = (g) => (g >= 1024 ? `${(g / 1024).toFixed(2)} TB` : g >= 10 ? `${g.toFixed(0)} GB` : `${g.toFixed(2)} GB`);
+  const initials = (name) => name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const tsDate = new Date(S.ts);
+  const tsText = tsDate.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+  // ---------- geometry ----------
+  const P = (id) => L.pos[id];
+  const linkPoints = (l) => [P(l.a)].concat(L.via[l.id] || [], [P(l.b)]);
+  function roundedPath(pts, r) {
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+      const d1 = Math.hypot(x1 - x0, y1 - y0), d2 = Math.hypot(x2 - x1, y2 - y1);
+      const rr = Math.min(r, d1 / 2, d2 / 2);
+      const ax = x1 - ((x1 - x0) / d1) * rr, ay = y1 - ((y1 - y0) / d1) * rr;
+      const bx = x1 + ((x2 - x1) / d2) * rr, by = y1 + ((y2 - y1) / d2) * rr;
+      d += ` L${ax},${ay} Q${x1},${y1} ${bx},${by}`;
+    }
+    const last = pts[pts.length - 1];
+    return d + ` L${last[0]},${last[1]}`;
+  }
+
+  // ---------- map ----------
+  const svg = $("map");
+  const trackEls = {};
+  let trains = [];
+
+  function drawMap() {
+    if (state.view === "noc") return;
+    clear(svg);
+    const defs = s("defs", {}, [
+      s("pattern", { id: "gridSm", width: 40, height: 40, patternUnits: "userSpaceOnUse" }, [s("path", { d: "M40 0H0V40", fill: "none", stroke: "var(--grid)", "stroke-width": 1 })]),
+      s("pattern", { id: "gridLg", width: 200, height: 200, patternUnits: "userSpaceOnUse" }, [s("rect", { width: 200, height: 200, fill: "url(#gridSm)" }), s("path", { d: "M200 0H0V200", fill: "none", stroke: "var(--grid-2)", "stroke-width": 1.5 })]),
+      s("radialGradient", { id: "fade", cx: "50%", cy: "50%", r: "70%" }, [s("stop", { offset: "60%", "stop-color": "var(--map)", "stop-opacity": 0 }), s("stop", { offset: "100%", "stop-color": "var(--map)", "stop-opacity": 1 })]),
+      s("filter", { id: "glow", x: "-20%", y: "-20%", width: "140%", height: "140%" }, [
+        s("feGaussianBlur", { in: "SourceGraphic", stdDeviation: 3.5, result: "b" }),
+        s("feMerge", {}, [s("feMergeNode", { in: "b" }), s("feMergeNode", { in: "SourceGraphic" })])
+      ])
+    ]);
+    svg.append(defs);
+    svg.append(s("rect", { x: -2000, y: -2000, width: 5000, height: 5000, fill: "url(#gridLg)" }));
+    svg.append(s("rect", { x: -200, y: -200, width: 1600, height: 1200, fill: "url(#fade)", "pointer-events": "none" }));
+
+    const gTracks = s("g", { class: "tracks" });
+    const gHits = s("g");
+    const gTrains = s("g");
+    const gStations = s("g");
+    const gBadges = s("g");
+    svg.append(gTracks, gTrains, gHits, gStations, gBadges);
+
+    // Tracks
+    S.links.forEach((l) => {
+      const ln = lineOf[l.id];
+      const d = roundedPath(linkPoints(l), 22);
+      const lstate = worst(alertsFor(l.id));
+      const width = HUB_KINDS.has(nodes[l.a].kind) && HUB_KINDS.has(nodes[l.b].kind) ? 11 : 8;
+      const path = s("path", { d, class: "track" + (l.planned ? " planned" : "") + (state.selected === l.id ? " sel" : ""), stroke: color(ln), "stroke-width": width });
+      trackEls[l.id] = path;
+      gTracks.append(path);
+      if (lstate === "crit" || lstate === "warn") {
+        gTracks.append(s("path", { d, class: "track", stroke: `var(--${lstate})`, "stroke-width": 3, "stroke-dasharray": "6 8" }));
+      }
+      const hit = s("path", { d, class: "track-hit", tabindex: 0, role: "button", "aria-label": `${lineById[ln].name}: ${targetLabel(l.id)}`,
+        onclick: (e) => { if (!dragMoved) select(l.id); }, onkeydown: (e) => { if (e.key === "Enter") select(l.id); } });
+      gHits.append(hit);
+    });
+
+    // Stations
+    S.nodes.forEach((n) => {
+      const [x, y] = P(n.id);
+      const st = nodeState(n);
+      const hub = isHub(n);
+      const r = n.id === "central" ? 17 : hub ? 14 : 7.5;
+      const servedBy = S.links.filter((l) => l.a === n.id || l.b === n.id).map((l) => lineOf[l.id]);
+      const ringColor = hub ? "var(--hub-ring)" : color(servedBy[0]);
+      const fill = st === "crit" ? "var(--crit)" : "var(--station)";
+      const g = s("g", { class: "station" + (state.selected === n.id ? " sel" : ""), tabindex: 0, role: "button", "aria-label": `${n.label}, ${plainState(st)}`,
+        onclick: () => { if (!dragMoved) select(n.id); }, onkeydown: (e) => { if (e.key === "Enter") select(n.id); } });
+      g.append(s("circle", { cx: x, cy: y, r: r + 10, fill: "transparent" }));
+      g.append(s("circle", { class: "ring", cx: x, cy: y, r, fill, stroke: ringColor, "stroke-width": hub ? 4.5 : 4, "stroke-dasharray": st === "unknown" ? "3 3" : null }));
+      if (hub && st !== "crit") g.append(s("circle", { cx: x, cy: y, r: r - 7, fill: "var(--hub-ring)", opacity: 0.9 }));
+      if (st === "crit") g.append(s("path", { d: `M${x - 5},${y - 5}L${x + 5},${y + 5}M${x + 5},${y - 5}L${x - 5},${y + 5}`, stroke: "#fff", "stroke-width": 3, "stroke-linecap": "round" }));
+      // label
+      const pos = L.labels[n.id] || "right";
+      const off = r + 8;
+      let lx = x, ly = y + 4, anchor = "middle";
+      if (pos === "right") { lx = x + off; anchor = "start"; }
+      else if (pos === "left") { lx = x - off; anchor = "end"; }
+      else if (pos === "above") { ly = y - off - (n.sublabel ? 14 : 0); }
+      else if (pos === "below") { ly = y + off + 12; }
+      else if (pos === "below-left") { lx = x - off + 4; ly = y + off + 10; anchor = "end"; }
+      else if (pos === "above-right") { lx = x + off - 4; ly = y - off - 14; anchor = "start"; }
+      else if (pos === "above-left") { lx = x - off + 4; ly = y - off - 14; anchor = "end"; }
+      g.append(s("text", { x: lx, y: ly, "text-anchor": anchor, class: "label" + (hub ? " hub" : ""), text: n.label }));
+      if (n.sublabel) g.append(s("text", { x: lx, y: ly + 15, "text-anchor": anchor, class: "label sub", text: n.sublabel }));
+      gStations.append(g);
+    });
+
+    // Badges for warn/crit alerts (stations and links)
+    const seen = new Set();
+    alerts().filter((a) => a.severity !== "info").forEach((a) => {
+      if (seen.has(a.target)) return; seen.add(a.target);
+      let bx, by;
+      if (nodes[a.target]) {
+        [bx, by] = P(a.target);
+        const at = (L.badge_at || {})[a.target];
+        if (at) { bx += at[0]; by += at[1]; } else by -= isHub(nodes[a.target]) ? 34 : 24;
+      }
+      else if (trackEls[a.target]) { const p = trackEls[a.target], m = p.getPointAtLength(p.getTotalLength() / 2); bx = m.x; by = m.y - 20; }
+      else return;
+      const text = THEME[a.kind] ? THEME[a.kind].t : a.kind;
+      const w = text.length * 7.2 + 32;
+      const ink = inkFor(`--${a.severity}`);
+      const g = s("g", { class: "station", onclick: () => { if (!dragMoved) select(a.target); } });
+      g.append(s("rect", { x: bx - w / 2, y: by - 11, width: w, height: 22, rx: 11, fill: `var(--${a.severity})` }));
+      g.append(s("circle", { cx: bx - w / 2 + 11, cy: by, r: 6.5, fill: ink }));
+      g.append(s("text", { x: bx - w / 2 + 11, y: by + 4, "text-anchor": "middle", class: "badge-text", fill: `var(--${a.severity})`, style: `fill: var(--${a.severity})`, text: a.severity === "crit" ? "×" : "!" }));
+      g.append(s("text", { x: bx - w / 2 + 22, y: by + 4, class: "badge-text", style: `fill:${ink}`, text }));
+      gBadges.append(g);
+    });
+
+    buildTrains(gTrains);
+  }
+
+  function plainState(st) { return { good: "healthy", warn: "caution", crit: "down", unknown: "not monitored" }[st]; }
+
+  // ---------- trains ----------
+  function measured(l) {
+    if (state.demo && !l.planned) {
+      if (l._demo == null) l._demo = { ab: Math.pow(10, Math.random() * 3 - 1), ba: Math.pow(10, Math.random() * 2.5 - 1) };
+      return l._demo;
+    }
+    const ab = typeof l.a_to_b_mbps === "number" ? l.a_to_b_mbps : 0;
+    const ba = typeof l.b_to_a_mbps === "number" ? l.b_to_a_mbps : 0;
+    return { ab, ba };
+  }
+  function buildTrains(g) {
+    trains = [];
+    S.links.forEach((l) => {
+      const path = trackEls[l.id];
+      if (!path || worst(alertsFor(l.id)) === "crit") return;
+      if (nodeState(nodes[l.a]) === "crit" || nodeState(nodes[l.b]) === "crit") return;
+      const len = path.getTotalLength();
+      const { ab, ba } = measured(l);
+      [[ab, 1], [ba, -1]].forEach(([rate, dir]) => {
+        if (!(rate > 0)) return;
+        const count = Math.max(1, Math.min(5, Math.round(1 + Math.log10(1 + rate * 20))));
+        const speed = 22 + 16 * Math.log10(1 + rate * 10);
+        for (let i = 0; i < count; i++) {
+          const el = s("g", { class: "train" }, [
+            s("rect", { x: -9, y: -4, width: 18, height: 8, rx: 3.5, fill: "var(--station)", stroke: color(lineOf[l.id]), "stroke-width": 2.5 })
+          ]);
+          g.append(el);
+          trains.push({ el, path, len, dir, speed, t: (i / count) * len + (dir < 0 ? len / (2 * count) : 0) });
+        }
+      });
+    });
+    placeTrains(0);
+  }
+  function placeTrains(dt) {
+    trains.forEach((tr) => {
+      tr.t = (tr.t + tr.dir * tr.speed * dt + tr.len) % tr.len;
+      const p = tr.path.getPointAtLength(tr.t);
+      const q = tr.path.getPointAtLength(Math.min(tr.len, tr.t + 1));
+      const ang = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI;
+      tr.el.setAttribute("transform", `translate(${p.x},${p.y}) rotate(${ang})`);
+    });
+  }
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (state.motion && state.view === "map") placeTrains(dt);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ---------- pan / zoom ----------
+  const HOME_VB = [30, 40, 1170, 740];
+  let vb = HOME_VB.slice();
+  let dragMoved = false;
+  const setVB = () => svg.setAttribute("viewBox", vb.join(" "));
+  function toSvg(e) { const r = svg.getBoundingClientRect(); const sc = Math.max(vb[2] / r.width, vb[3] / r.height); return [vb[0] + (e.clientX - r.left) * sc, vb[1] + (e.clientY - r.top) * sc, sc]; }
+  svg.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const [mx, my] = toSvg(e);
+    const k = Math.exp(e.deltaY * 0.0015);
+    const nw = Math.min(2400, Math.max(300, vb[2] * k)), f = nw / vb[2];
+    vb = [mx - (mx - vb[0]) * f, my - (my - vb[1]) * f, nw, vb[3] * f]; setVB();
+  }, { passive: false });
+  let drag = null;
+  svg.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, vb: vb.slice(), sc: toSvg(e)[2] }; dragMoved = false; });
+  window.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) { dragMoved = true; svg.classList.add("dragging"); }
+    if (dragMoved) { vb = [drag.vb[0] - dx * drag.sc, drag.vb[1] - dy * drag.sc, drag.vb[2], drag.vb[3]]; setVB(); }
+  });
+  window.addEventListener("pointerup", () => { drag = null; svg.classList.remove("dragging"); setTimeout(() => { dragMoved = false; }, 0); });
+
+  // ---------- detail card ----------
+  const detail = $("detail");
+  function select(id) { state.selected = id; renderDetail(); drawMap(); notify(); }
+  function closeDetail() { state.selected = null; detail.classList.remove("open"); drawMap(); notify(); }
+  function bar(label, pct, right) {
+    const cls = pct >= 90 ? "crit" : pct >= 80 ? "warn" : "";
+    return h("div", { class: "bar" }, [
+      h("div", { class: "row" }, [h("span", { text: label }), h("span", { class: "mono", text: right })]),
+      h("div", { class: "track-bg" }, [h("div", { class: "fill " + cls, style: `width:${Math.max(1, Math.min(100, pct))}%` })])
+    ]);
+  }
+  function kv(obj) {
+    const dl = h("dl", { class: "kv" });
+    Object.entries(obj || {}).forEach(([k, v]) => { dl.append(h("dt", { text: k }), h("dd", { text: String(v) })); });
+    return dl;
+  }
+  function chip(lineId) { return h("span", { class: "chip", style: `background:${color(lineId)};color:${lineInk(lineId)}`, text: lineById[lineId].name }); }
+  function alertBoxes(id) {
+    return alertsFor(id).map((a) => h("div", { class: "alert-box " + a.severity }, [
+      h("b", { text: `${PLAIN_SEV[a.severity]} · ${THEME[a.kind].t}${a.drill ? " (drill)" : ""}` }), h("div", { text: a.message })
+    ]));
+  }
+  function renderDetail() {
+    clear(detail);
+    const id = state.selected;
+    if (!id) { detail.classList.remove("open"); return; }
+    detail.append(h("button", { class: "close", "aria-label": "Close", text: "×", onclick: closeDetail }));
+    if (nodes[id]) {
+      const n = nodes[id], st = nodeState(n);
+      detail.append(h("h3", { text: n.label }));
+      detail.append(h("div", { class: "kind", text: `${kindName(n.kind)}${n.sublabel ? " · " + n.sublabel : ""}` }));
+      detail.append(h("span", { class: "pill " + st, text: plainState(st) }));
+      const served = [...new Set(S.links.filter((l) => l.a === id || l.b === id).map((l) => lineOf[l.id]))];
+      detail.append(h("div", { class: "chips" }, served.map(chip)));
+      alertBoxes(id).forEach((b) => detail.append(b));
+      if (id === "caddy" || id === "domain") {
+        const E = S.edge;
+        if (id === "caddy") {
+          const d = certDays();
+          detail.append(h("div", { class: "sec", text: "Certificate" }));
+          detail.append(bar("Life used (renews at 30 days left)", Math.round(((90 - d) / 90) * 100), `${d} days left`));
+          detail.append(h("div", { class: "foot", text: `${E.cert.names.join(", ")} · ${E.cert.issuer} · expires ${new Date(E.cert.expires).toLocaleDateString()}` }));
+          detail.append(h("div", { class: "sec", text: "Last deploy" }));
+          detail.append(kv({ Commit: `${E.deploy.commit} · ${E.deploy.ok ? "OK" : "FAILED"}`, When: new Date(E.deploy.at).toLocaleString(), What: E.deploy.message, Checks: `GitHub main every ${E.deploy.interval_min} min` }));
+        } else {
+          const d = daysUntil(E.domain.expires);
+          detail.append(h("div", { class: "sec", text: "Registration" }));
+          detail.append(bar("Year used", Math.round(((365 - d) / 365) * 100), `${d} days left${E.domain.auto_renew ? " · auto-renew" : ""}`));
+          detail.append(h("div", { class: "sec", text: "App names" }));
+          const o = {};
+          E.dns.expected.forEach((r) => { o[r.name] = `${r.ip} (${r.host}) ${E.dns.wrong.includes(r.name) ? "✗ wrong" : "✓"}`; });
+          o["Through the Eero"] = E.dns.via_eero_ok ? "✓ resolves" : "✗ blocked";
+          detail.append(kv(o));
+        }
+      }
+      const st2 = n.stats;
+      if (st2) {
+        if (st2.cpu_pct != null) {
+          detail.append(h("div", { class: "sec", text: "Resources" }));
+          detail.append(bar("CPU (load ÷ cores)", st2.cpu_pct, `${st2.cpu_pct}% · load ${st2.load.join(" ")}`));
+          const mp = Math.round((st2.mem.used_gb / st2.mem.total_gb) * 100);
+          detail.append(bar("Memory in use", mp, `${fmtGB(st2.mem.used_gb)} of ${fmtGB(st2.mem.total_gb)}`));
+          detail.append(h("div", { class: "foot", text: `${fmtGB(st2.mem.cache_gb)} is file cache (free on demand)` }));
+          detail.append(bar("Swap", Math.round((st2.swap.used_gb / st2.swap.total_gb) * 100), `${fmtGB(st2.swap.used_gb)} of ${fmtGB(st2.swap.total_gb)}`));
+          if (st2.temps_c) detail.append(h("div", { class: "foot", text: `Temperatures: ${st2.temps_c.map((t) => t.toFixed(0) + " °C").join(", ")}` }));
+        }
+        if (st2.disks) {
+          detail.append(h("div", { class: "sec", text: "Disks" }));
+          st2.disks.forEach((d) => detail.append(bar(d.mount, d.pct, `${fmtGB(d.used_gb)} / ${fmtGB(d.size_gb)} · ${d.pct}%`)));
+        }
+        if (st2.nics) {
+          detail.append(h("div", { class: "sec", text: "Network" }));
+          const o = {};
+          st2.nics.forEach((nc) => { o[nc.name] = nc.note ? nc.note : `↓ ${fmtRate(nc.rx_mbps)} · ↑ ${fmtRate(nc.tx_mbps)} (since boot ${fmtGB(nc.rx_total_gb)} in / ${fmtGB(nc.tx_total_gb)} out)`; });
+          detail.append(kv(o));
+        }
+      }
+      detail.append(h("div", { class: "sec", text: "Details" }));
+      detail.append(kv(n.meta));
+      if (n.url) detail.append(h("a", { class: "open-app", href: n.url, target: "_blank", rel: "noopener", text: `Open ${n.label} →` }));
+    } else if (links[id]) {
+      const l = links[id], ln = lineById[lineOf[id]];
+      detail.append(h("h3", { text: `${nodes[l.a].label} ↔ ${nodes[l.b].label}` }));
+      detail.append(h("div", { class: "kind", text: `${kindName(l.kind)} link${l.planned ? " · planned" : ""}` }));
+      detail.append(h("div", { class: "chips" }, [chip(ln.id)]));
+      alertBoxes(id).forEach((b) => detail.append(b));
+      const info = {};
+      if (l.capacity_mbps) info["Capacity"] = `${l.capacity_mbps} Mbps`;
+      if ("a_to_b_mbps" in l) {
+        info[`${nodes[l.a].label} → ${nodes[l.b].label}`] = fmtRate(l.a_to_b_mbps);
+        info[`${nodes[l.b].label} → ${nodes[l.a].label}`] = fmtRate(l.b_to_a_mbps);
+        info["Utilization"] = l.util_pct == null ? "not measured" : `${l.util_pct < 0.1 ? "< 0.1" : l.util_pct.toFixed(1)}%`;
+      }
+      detail.append(kv(Object.assign(info, l.meta)));
+      if (state.demo) detail.append(h("div", { class: "foot", text: "Demo traffic is on: trains on this link are simulated." }));
+    }
+    detail.classList.add("open");
+  }
+  function kindName(k) {
+    return { domain: "Domain & DNS", gateway: "Reverse proxy (hub)", dns: "DNS", edge: "Proxy", isp: "Internet", router: "Router", host: "Server (hub)", nas: "Storage (hub)", pc: "Workstation (hub)", app: "App", mount: "NFS mount", drive: "NAS drive",
+      wan: "Internet", trunk: "Network", host_: "", storage: "Storage", backup: "Backup", drive_: "" }[k] || k;
+  }
+
+  // Days left on the wildcard cert and the domain, from the snapshot's dates (drill shortens the cert).
+  const daysUntil = (iso) => Math.floor((new Date(iso) - Date.now()) / 86400000);
+  const certDays = () => (state.drill ? 12 : daysUntil(S.edge.cert.expires));
+
+  // ---------- side panel + stats ----------
+  function renderSide() {
+    const el = $("lines"); clear(el);
+    let good = 0, counted = 0;
+    lines.forEach((ln) => {
+      const st = lineStatus(ln);
+      if (st.sev !== "unknown") { counted++; if (st.sev === "good") good++; }
+      el.append(h("div", { class: "line-row", onclick: () => select(ln.links[0]) }, [
+        h("div", { class: "roundel", style: `background:${color(ln.id)};color:${lineInk(ln.id)}`, text: initials(ln.name) }),
+        h("div", {}, [h("b", { text: ln.name }), h("div", { class: "st " + st.sev, text: st.text }), h("p", { text: st.detail })])
+      ]));
+    });
+    const list = alerts();
+    const nt = $("notices"); clear(nt);
+    $("noticeCount").textContent = `${list.length} active`;
+    if (!list.length) nt.append(h("p", { class: "foot", text: "All clear." }));
+    list.forEach((a) => {
+      nt.append(h("div", { class: "notice " + a.severity, onclick: () => select(a.target) }, [
+        h("div", { class: "hd" }, [h("span", { text: targetLabel(a.target) }), h("span", {}, [
+          a.drill ? h("span", { class: "pill drill", text: "Drill" }) : null, " ",
+          h("span", { class: "pill " + a.severity, text: `${PLAIN_SEV[a.severity]} · ${THEME[a.kind].t}` })])]),
+        h("p", { text: a.message })
+      ]));
+    });
+
+    const c = nodes.central.stats, nas = nodes.nas.stats.disks[0];
+    const danger = list.filter((a) => a.severity === "crit").length, caution = list.filter((a) => a.severity === "warn").length;
+    const stats = $("stats"); clear(stats);
+    [[`${good}/${counted}`, "Good service", ""], [danger, "Danger", danger ? "crit" : ""], [caution, "Caution", caution ? "warn" : ""],
+     [`${certDays()}d`, "Cert left", certDays() < 7 ? "crit" : certDays() < 21 ? "warn" : ""],
+     [`${c.cpu_pct}%`, "Central CPU", ""], [`${Math.round((c.mem.used_gb / c.mem.total_gb) * 100)}%`, "Central RAM", ""], [`${nas.pct}%`, "NAS used", nas.pct >= 80 ? "warn" : ""]]
+      .forEach(([v, k, cls]) => stats.append(h("div", { class: "stat " + cls }, [h("b", { text: String(v) }), h("span", { text: k })])));
+  }
+
+  // ---------- table + legend ----------
+  function table(headers, rows) {
+    return h("table", {}, [h("thead", {}, [h("tr", {}, headers.map((x) => h("th", { text: x })))]),
+      h("tbody", {}, rows.map((r) => h("tr", {}, r.map((c, i) => h("td", { class: typeof c === "number" || /^[\d<.]/.test(String(c)) ? "num" : "", text: String(c) })))))]);
+  }
+  function renderTable() {
+    const b = $("tableBody"); clear(b);
+    b.append(h("h3", { text: "Alerts" }), table(["Severity", "Where", "What", "Message"], alerts().map((a) => [PLAIN_SEV[a.severity] + (a.drill ? " (drill)" : ""), targetLabel(a.target), THEME[a.kind].plain, a.message])));
+    b.append(h("h3", { text: "Stations" }), table(["Name", "Kind", "Status", "Lines"], S.nodes.map((n) => [n.label, kindName(n.kind), plainState(nodeState(n)),
+      [...new Set(S.links.filter((l) => l.a === n.id || l.b === n.id).map((l) => lineById[lineOf[l.id]].name))].join(", ")])));
+    b.append(h("h3", { text: "Links" }), table(["From", "To", "Line", "Capacity", "A → B", "B → A", "Util"], S.links.map((l) => [nodes[l.a].label, nodes[l.b].label, lineById[lineOf[l.id]].name,
+      l.capacity_mbps ? `${l.capacity_mbps} Mbps` : "—", "a_to_b_mbps" in l ? fmtRate(l.a_to_b_mbps) : "—", "b_to_a_mbps" in l ? fmtRate(l.b_to_a_mbps) : "—",
+      l.util_pct == null ? "—" : `${l.util_pct < 0.1 ? "< 0.1" : l.util_pct}%`])));
+  }
+  function mini(children) { return s("svg", { width: 52, height: 28, viewBox: "0 0 52 28" }, children); }
+  function renderLegend() {
+    const b = $("legendBody"); clear(b);
+    b.append(h("h3", { text: "Symbols" }));
+    const g = h("div", { class: "legend-grid" });
+    const rows = [
+      [mini([s("circle", { cx: 26, cy: 14, r: 10, fill: "var(--station)", stroke: "var(--hub-ring)", "stroke-width": 4 }), s("circle", { cx: 26, cy: 14, r: 4, fill: "var(--hub-ring)" })]), "Hub station: a machine (mini PC, NAS, router, PC). Click for CPU, memory, disks and network."],
+      [mini([s("line", { x1: 0, y1: 14, x2: 52, y2: 14, stroke: "var(--l-green)", "stroke-width": 7 }), s("circle", { cx: 26, cy: 14, r: 6.5, fill: "var(--station)", stroke: "var(--l-green)", "stroke-width": 4 })]), "Stop: an app, storage mount or drive. Click for status, port and details."],
+      [mini([s("circle", { cx: 26, cy: 14, r: 7, fill: "var(--station)", stroke: "var(--unknown)", "stroke-width": 3, "stroke-dasharray": "3 3" })]), "Dashed ring: not monitored yet. We don't claim it's healthy."],
+      [mini([s("circle", { cx: 26, cy: 14, r: 9, fill: "var(--crit)" }), s("path", { d: "M22 10L30 18M30 10L22 18", stroke: "#fff", "stroke-width": 3 })]), "Red stop with ×: down."],
+      [mini([s("line", { x1: 0, y1: 14, x2: 52, y2: 14, stroke: "var(--l-blue)", "stroke-width": 7 }), s("rect", { x: 17, y: 10, width: 18, height: 8, rx: 3.5, fill: "var(--station)", stroke: "var(--l-blue)", "stroke-width": 2.5 })]), "Train: measured traffic. More trains and faster trains mean more traffic. Links with no measurement have no trains."],
+      [mini([s("line", { x1: 0, y1: 14, x2: 52, y2: 14, stroke: "var(--l-gold)", "stroke-width": 7, "stroke-dasharray": "2 8", "stroke-linecap": "round" })]), "Dotted track: planned, not built yet."],
+      [mini([s("line", { x1: 0, y1: 14, x2: 52, y2: 14, stroke: "var(--l-red)", "stroke-width": 8 }), s("line", { x1: 0, y1: 14, x2: 52, y2: 14, stroke: "var(--warn)", "stroke-width": 3, "stroke-dasharray": "6 8" })]), "Striped track: an alert on that link."]
+    ];
+    rows.forEach(([icon, text]) => g.append(h("div", {}, [icon]), h("div", { text })));
+    b.append(g);
+    b.append(h("h3", { text: "Lines" }), table(["Line", "What it carries"], lines.map((l) => [l.name, l.what])));
+    b.append(h("h3", { text: "Service notices" }), table(["On the map", "Plain meaning"], Object.values(THEME).map((t) => [t.t, t.plain])));
+    b.append(h("p", { class: "foot", text: "A line shows delays when one of its links or stops has a problem. A caution at a hub (like Central) shows on the hub only. A hub that's down suspends every line through it." }));
+    b.append(h("h3", { text: "About this data" }));
+    b.append(table(["Source", "How often"], S.sources.map((x) => [x.label, x.cadence])));
+    b.append(h("p", { class: "foot", text: `Snapshot taken ${tsText}. This mockup is one real read-only pull. In the portal, the map polls /api/snapshot every 30 seconds. Rates come from interface counter deltas. Only Central's and the NAS's wired links are measured today, which is why most track has no trains. "Demo traffic" fills the rest with simulated trains and says so.` }));
+  }
+
+  // ---------- controls ----------
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", state.theme);
+    $("bDay").setAttribute("aria-pressed", state.theme === "day");
+    $("bNight").setAttribute("aria-pressed", state.theme === "midnight");
+    const dots = $("brandDots"); clear(dots);
+    ["red", "orange", "green", "blue", "purple", "teal"].forEach((l) => dots.append(h("i", { style: `background:${color(l)}` })));
+  }
+  function setPressed(id, v) { $(id).setAttribute("aria-pressed", String(!!v)); }
+  function renderAll() { applyTheme(); renderSide(); drawMap(); renderDetail(); document.body.classList.toggle("motion", state.motion); notify(); }
+
+  // ---------- views ----------
+  const views = {};
+  const NAV_HINT = { map: "Drag to pan · scroll to zoom · click anything", "3d": "Drag to pan · scroll to zoom · Q/E rotate · right-drag to tilt · click anything" };
+  function setView(v) {
+    state.view = v;
+    document.body.dataset.view = v;
+    $("mapwrap").dataset.view = v;
+    setPressed("bVMap", v === "map"); setPressed("bV3d", v === "3d"); setPressed("bVNoc", v === "noc");
+    if (NAV_HINT[v]) $("hintNav").textContent = NAV_HINT[v];
+    if (v === "noc") document.body.append(detail); else $("mapwrap").append(detail);
+    Object.entries(views).forEach(([k, view]) => { if (k !== v && view.hide) view.hide(); });
+    if (v === "map") drawMap();
+    if (views[v] && views[v].show) views[v].show();
+  }
+
+  // Shared model for the 3D and NOC views. They read the same snapshot; there is no second source.
+  window.HLT = { S, nodes, links, lines, lineOf, lineById, state, alerts, alertsFor, nodeState, worst, measured, select, closeDetail,
+    cssColor, cssVar, color, THEME, PLAIN_SEV, SEV_RANK, plainState, kindName, fmtRate, fmtGB, targetLabel, isHub, linkPoints, P,
+    h, s, clear, tsDate, listeners, views, setView, daysUntil, certDays };
+
+  $("bMotion").onclick = () => { state.motion = !state.motion; pref.set("motion", state.motion); setPressed("bMotion", state.motion); document.body.classList.toggle("motion", state.motion); };
+  $("bDemo").onclick = () => { state.demo = !state.demo; setPressed("bDemo", state.demo); $("simTag").classList.toggle("on", state.demo); drawMap(); renderDetail(); notify(); };
+  $("bDrill").onclick = () => { state.drill = !state.drill; setPressed("bDrill", state.drill); $("bDrill").textContent = state.drill ? "End fire drill" : "Fire drill"; renderAll(); };
+  $("bReset").onclick = () => { if (state.view === "3d" && views["3d"]) views["3d"].reset(); else { vb = HOME_VB.slice(); setVB(); } };
+  $("bRotL").onclick = () => views["3d"] && views["3d"].rotate(-1);
+  $("bRotR").onclick = () => views["3d"] && views["3d"].rotate(1);
+  $("bVMap").onclick = () => setView("map");
+  $("bV3d").onclick = () => setView("3d");
+  $("bVNoc").onclick = () => setView("noc");
+  $("bTable").onclick = () => { renderTable(); $("dlgTable").showModal(); };
+  $("bLegend").onclick = () => { renderLegend(); $("dlgLegend").showModal(); };
+  $("aboutLink").onclick = $("bLegend").onclick;
+  $("bWide").onclick = () => { state.wide = !state.wide; pref.set("wide", state.wide); setPressed("bWide", state.wide); $("layout").classList.toggle("wide", state.wide); };
+  $("bDay").onclick = () => { state.theme = "day"; pref.set("theme", "day"); renderAll(); };
+  $("bNight").onclick = () => { state.theme = "midnight"; pref.set("theme", "midnight"); renderAll(); };
+  document.querySelectorAll("[data-close]").forEach((b) => { b.onclick = () => b.closest("dialog").close(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.matches && e.target.matches("input, textarea")) return;
+    const open = document.querySelector("dialog[open]");
+    if (e.key === "Escape") { if (!open && state.selected) closeDetail(); return; }
+    if (open || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === "m") $("bMotion").click(); else if (k === "h") $("bReset").click(); else if (k === "t") $("bTable").click();
+    else if (k === "l") $("bLegend").click(); else if (k === "b") $("bWide").click();
+    else if ((k === "q" || k === "e") && state.view === "3d" && views["3d"]) views["3d"].rotate(k === "q" ? -1 : 1);
+    else if (k === "1") setView("map"); else if (k === "2") setView("3d"); else if (k === "3") setView("noc");
+  });
+
+  setPressed("bMotion", state.motion); setPressed("bWide", state.wide); $("layout").classList.toggle("wide", state.wide);
+  $("hintTs").textContent = `Real read-only pull · ${tsText}`;
+  const clock = () => { $("clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); };
+  clock(); setInterval(clock, 30000);
+  renderAll();
+  window.addEventListener("DOMContentLoaded", () => setView(state.view));
+})();
+</script>
+<script src="noc.js"></script>
+<script type="module">
+// ---------- 3D view: the transit map on a small hand-drawn Boston (Three.js, same snapshot) ----------
+// Everything here is authored for the homelab: scenery shapes are typed in by hand in world units
+// (1 unit = 10 px of the 2D layout), the street plan and town are procedural with a seeded RNG.
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const H = window.HLT;
+const host = document.getElementById("view3d");
+const W = ([x, y], hgt = 0) => new THREE.Vector3((x - 620) / 10, hgt, (y - 400) / 10);
+const col = (c) => new THREE.Color(c || "#888");
+const ELEV = 0.76, AZ = 0.62, DIST = 220;
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const rng = (seed) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+const hash3 = (a, b, c) => (((a * 73856093) ^ (b * 19349663) ^ (c * 83492791)) >>> 0) / 4294967296;
+
+// ---------- areas ----------
+const SP = H.S.nodes.map((n) => W(H.P(n.id)));
+const U = { x0: Math.min(...SP.map((p) => p.x)) - 11, x1: Math.max(...SP.map((p) => p.x)) + 11,
+            z0: Math.min(...SP.map((p) => p.z)) - 6, z1: Math.max(...SP.map((p) => p.z)) + 5 };   // usable area
+const UC = new THREE.Vector3((U.x0 + U.x1) / 2, 0, (U.z0 + U.z1) / 2);
+const G = { x0: U.x0 - 32, x1: U.x1 + 32, z0: U.z0 - 32, z1: U.z1 + 32 };                          // painted ground
+const hazeAt = (x, z) => 0.92 * clamp01((Math.max(U.x0 - x, x - U.x1, U.z0 - z, z - U.z1, 0) - 1) / 23);
+
+// ---------- hand-drawn Boston (world units: x east, z south) ----------
+const SC = {
+  river: { width: 3.2, pts: [[-130, -26.5], [-80, -29.6], [-50, -28.6], [-26, -28], [-4, -28.7], [16, -28.1], [34, -28.5], [56, -27.6]] },
+  harbor: [[47, -140], [44, -46], [46, -33], [50, -25.5], [54, -14], [53, -2], [56, 9], [54, 21], [57, 33], [55, 46], [59, 140], [220, 140], [220, -140]],
+  airport: [[61, -38], [73, -43], [87, -33], [89, -13], [79, -4], [66, -8], [60, -21]],
+  runways: [{ x: 74, z: -23, len: 24, w: 1.5, a: 0.42 }, { x: 72, z: -19, len: 17, w: 1.2, a: -1.05 }],
+  islands: [[75, 19, 6], [88, 40, 8], [67, 47, 5]],
+  parks: [{ id: "common", x: -4, z: -10, w: 9, d: 7 }, { id: "garden", x: -13, z: -19, w: 6, d: 4.5 }],
+  landmarks: [
+    { kind: "statehouse", x: -4, z: -15.5, r: 2.2 }, { kind: "customhouse", x: 25, z: 7, r: 2 },
+    { kind: "faneuil", x: 24, z: -8, r: 2.1 }, { kind: "oldnorth", x: 46, z: -16, r: 2 },
+    { kind: "mit", x: -44, z: -34.5, r: 2.4 }, { kind: "bunker", x: 34, z: -41, r: 2.6 },
+    { kind: "fenway", x: -31, z: 19, r: 5.5 }, { kind: "citgo", x: -28, z: 7, r: 1.6 },
+    { kind: "hatch", x: -40, z: -25.2, r: 1.8, fixed: true }, { kind: "bandstand", x: -2, z: -11, r: 0.8, fixed: true },
+    { kind: "zakim", x: 40, z: null, r: 0, fixed: true }, { kind: "constitution", x: 48.2, z: -31.4, r: 0, fixed: true, water: true }
+  ]
+};
+
+// River centreline as a uniform lookup (Catmull-Rom through the hand points).
+const RIV = (() => {
+  const curve = new THREE.CatmullRomCurve3(SC.river.pts.map(([x, z]) => new THREE.Vector3(x, 0, z)));
+  const pts = curve.getSpacedPoints(1200);
+  const x0 = SC.river.pts[0][0], x1 = SC.river.pts[SC.river.pts.length - 1][0], step = 0.25;
+  const lut = new Float32Array(Math.ceil((x1 - x0) / step) + 1);
+  let j = 0;
+  for (let i = 0; i < lut.length; i++) {
+    const x = x0 + i * step;
+    while (j < pts.length - 2 && pts[j + 1].x < x) j++;
+    const a = pts[j], b = pts[j + 1], t = b.x === a.x ? 0 : clamp01((x - a.x) / (b.x - a.x));
+    lut[i] = a.z + (b.z - a.z) * t;
+  }
+  return { x0, x1, step, lut };
+})();
+const riverZ = (x) => RIV.lut[Math.max(0, Math.min(RIV.lut.length - 1, Math.round((x - RIV.x0) / RIV.step)))];
+const inRiver = (x, z) => x >= RIV.x0 && x <= RIV.x1 && Math.abs(z - riverZ(x)) < SC.river.width / 2;
+function inPoly(x, z, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, zi] = poly[i], [xj, zj] = poly[j];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+const inIsland = (x, z) => SC.islands.some(([cx, cz, r]) => (x - cx) ** 2 + (z - cz) ** 2 < r * r);
+const isWater = (x, z) => !inPoly(x, z, SC.airport) && !inIsland(x, z) && (inRiver(x, z) || inPoly(x, z, SC.harbor));
+const inPark = (x, z, pad = 0) => SC.parks.some((p) => Math.abs(x - p.x) < p.w / 2 + pad && Math.abs(z - p.z) < p.d / 2 + pad);
+function inRunway(x, z, rw) {
+  const c = Math.cos(rw.a), s = Math.sin(rw.a), dx = x - rw.x, dz = z - rw.z;
+  const u = dx * c + dz * s, v = -dx * s + dz * c;
+  return Math.abs(u) < rw.len / 2 && Math.abs(v) < rw.w / 2 ? { u, v } : null;
+}
+
+// ---------- palettes ----------
+const PAL = {
+  day: { haze: "#dce6ec", land: "#f1ede3", street: "#fcfbf7", sand: "#e9ddbf", shallow: "#a8d6e9", deep: "#5c98c6", foam: "#e8f4f9",
+    park: "#cedfba", parkDot: "#b4ce9c", path: "#e4d8bd", parking: "#dcd8cf", cars: ["#c0392b", "#2c3e50", "#ecf0f1", "#7f8c8d", "#2e86c1"],
+    tints: ["#efe9dd", "#ece5d6", "#f2ece2", "#e9e2d2", "#eee7da", "#e6dfcf"], grass: "#cddcb4", grass2: "#c3d4a8", runway: "#9097a0", mark: "#f7f7f2",
+    walls: ["#c66a4e", "#a55c47", "#ebdfc8", "#d4d8de", "#e3c79b"], glass: "#a9c1d6", roof: "#8c6d5a", glassRoof: "#7f93a6", band: "#f6f1e6",
+    crowns: ["#5e9a4b", "#4e8a42"], trunk: "#7a5a3c", brick: "#b5553c", stone: "#e3dfd3", white: "#f4efe6", gold: "#d4a53c",
+    hemi: ["#eaf2ff", "#a59275", 0.58], sun: ["#fff1dc", 0.72], rim: ["#cfe0ff", 0.18], station: "#ffffff", hubRim: "#141b2b", lit: 0 },
+  midnight: { haze: "#0a1022", land: "#121a31", street: "#1b2544", sand: "#1d2740", shallow: "#1b4775", deep: "#0c2346", foam: "#3a6ea3",
+    park: "#13301f", parkDot: "#1b4029", path: "#26304c", parking: "#171f38", cars: ["#ff5d57", "#7aa7ff", "#e9edf6", "#6f7890", "#ffb547"],
+    tints: ["#131c35", "#141e38", "#111931", "#16203a", "#121b33", "#101830"], grass: "#15301f", grass2: "#122a1b", runway: "#2b3450", mark: "#8e97ad",
+    walls: ["#2a2440", "#262038", "#2b3350", "#27304a", "#302b44"], glass: "#26395a", roof: "#1b2238", glassRoof: "#1f2c45", band: "#ffcf7a",
+    crowns: ["#1c4a33", "#173f2b"], trunk: "#2a2a33", brick: "#5a3040", stone: "#3a4260", white: "#8e97ad", gold: "#c9a24a",
+    hemi: ["#7aa7ff", "#1a1830", 0.5], sun: ["#aabfff", 0.35], rim: ["#7aa7ff", 0.25], station: "#0a1022", hubRim: "#e9edf6", lit: 1 }
+};
+// Three r169 uses physical light units; the legacy intensities above are scaled by PI to match.
+const LU = Math.PI;
+
+// ---------- state ----------
+let renderer = null, scene, camera, controls, world, net, labelLayer, failed = false, worldKey = null;
+let hemi, sun, rim;
+let labels = [], trains = [], pulses = [], pickables = [], risers = [], life = [];
+let active = false, hoverId = null, anim = null, riseT0 = -Infinity;
+let MASK = null;
+const curves = {};
+const clock = new THREE.Clock();
+const MC = new Map();
+
+// ---------- setup ----------
+function init() {
+  try { renderer = new THREE.WebGLRenderer({ antialias: true }); }
+  catch (e) {
+    failed = true;
+    host.append(H.h("div", { class: "gl-fail", text: "3D needs WebGL, and this browser didn't provide it. The 2D map and NOC views still work." }));
+    return;
+  }
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  host.append(renderer.domElement, H.h("div", { class: "vignette" }));
+  labelLayer = H.h("div", { class: "lbl-layer" });
+  host.append(labelLayer);
+
+  scene = new THREE.Scene();
+  camera = new THREE.OrthographicCamera(-50, 50, 30, -30, 1, 1200);
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.12;
+  controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+  controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  controls.screenSpacePanning = false;
+  controls.minPolarAngle = 0;
+  controls.maxPolarAngle = 1.15;
+  controls.minZoom = 0.6;
+  controls.maxZoom = 5;
+
+  hemi = new THREE.HemisphereLight();
+  sun = new THREE.DirectionalLight();
+  rim = new THREE.DirectionalLight();
+  sun.position.set(UC.x - 50, 90, UC.z + 60);
+  sun.target.position.copy(UC);
+  rim.position.set(UC.x + 50, 60, UC.z - 60);
+  rim.target.position.copy(UC);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(4096, 4096);
+  Object.assign(sun.shadow.camera, { left: -95, right: 95, top: 95, bottom: -95, near: 10, far: 320 });
+  sun.shadow.bias = -0.0005;
+  sun.shadow.normalBias = 0.03;
+  sun.shadow.radius = 4;
+  scene.add(hemi, sun, sun.target, rim, rim.target);
+  world = new THREE.Group();
+  net = new THREE.Group();
+  scene.add(world, net);
+
+  const ray = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  const hit = (e) => {
+    const r = renderer.domElement.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    let o = (ray.intersectObjects(pickables, true)[0] || {}).object;
+    while (o && !o.userData.id) o = o.parent;
+    return o ? o.userData.id : null;
+  };
+  let down = null;
+  renderer.domElement.addEventListener("pointerdown", (e) => { down = [e.clientX, e.clientY]; });
+  renderer.domElement.addEventListener("pointerup", (e) => {
+    const moved = !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5;
+    down = null;
+    if (moved || e.button !== 0) return;
+    const id = hit(e);
+    if (id) H.select(id);
+  });
+  renderer.domElement.addEventListener("pointermove", (e) => {
+    if (e.buttons) return;
+    const id = hit(e);
+    if (id !== hoverId) { hoverId = id; host.classList.toggle("pick", !!id); }
+  });
+  new ResizeObserver(() => { resize(); fit(); }).observe(host);
+}
+
+function resize() {
+  if (!renderer) return;
+  const w = host.clientWidth, h = host.clientHeight;
+  if (w && h) renderer.setSize(w, h, false);
+}
+
+// Size the orthographic frustum so the usable area fits for the current rotation.
+const CORNERS = [[U.x0, U.z0], [U.x1, U.z0], [U.x0, U.z1], [U.x1, U.z1]].map(([x, z]) => new THREE.Vector3(x, 0, z));
+const tv = new THREE.Vector3();
+function fit() {
+  if (!renderer || !host.clientWidth) return;
+  camera.updateMatrixWorld();
+  let hx = 1, hy = 1;
+  const uc = UC.clone().applyMatrix4(camera.matrixWorldInverse);
+  CORNERS.forEach((c) => {
+    tv.copy(c).applyMatrix4(camera.matrixWorldInverse);
+    hx = Math.max(hx, Math.abs(tv.x - uc.x)); hy = Math.max(hy, Math.abs(tv.y - uc.y));
+  });
+  const aspect = host.clientWidth / host.clientHeight;
+  hx *= 1.04; hy *= 1.08;
+  if (hx / hy < aspect) hx = hy * aspect; else hy = hx / aspect;
+  Object.assign(camera, { left: -hx, right: hx, top: hy, bottom: -hy });
+  camera.updateProjectionMatrix();
+}
+function place(phi, theta) {
+  camera.position.setFromSpherical(new THREE.Spherical(DIST, Math.max(0.0005, phi), theta)).add(controls.target);
+  camera.lookAt(controls.target);
+}
+function reset() {
+  anim = null;
+  controls.enabled = true;
+  controls.target.copy(UC);
+  camera.zoom = 1;
+  place(Math.PI / 2 - ELEV, AZ);
+  fit();
+  controls.update();
+}
+function currentAngles() {
+  const s = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+  return { phi: s.phi, theta: s.theta };
+}
+// Fold from straight-down into the tilted view (and grow the town) each time 3D opens.
+function fold() {
+  controls.target.copy(UC);
+  camera.zoom = 1;
+  if (!H.state.motion) { riseT0 = -Infinity; reset(); return; }
+  place(0.0005, 0);
+  fit();
+  anim = { from: { phi: 0.0005, theta: 0 }, to: { phi: Math.PI / 2 - ELEV, theta: AZ }, t0: performance.now() + 250, ms: 1300 };
+  riseT0 = performance.now() + 250;
+  controls.enabled = false;
+}
+function rotate(dir) {
+  if (!renderer) return;
+  const a = currentAngles();
+  const to = (anim ? anim.to.theta : a.theta) + dir * Math.PI / 2;
+  anim = { from: a, to: { phi: a.phi, theta: to }, t0: performance.now(), ms: H.state.motion ? 600 : 0 };
+  controls.enabled = false;
+}
+function stepAnim(now) {
+  if (!anim) return;
+  const u = anim.ms ? clamp01((now - anim.t0) / anim.ms) : 1;
+  const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  place(anim.from.phi + (anim.to.phi - anim.from.phi) * e, anim.from.theta + (anim.to.theta - anim.from.theta) * e);
+  fit();
+  if (u >= 1) { anim = null; controls.enabled = true; }
+}
+
+// ---------- helpers ----------
+function roundedCurve(pts, r) {
+  const path = new THREE.CurvePath();
+  const line = (a, b) => { if (a.distanceTo(b) > 1e-4) path.add(new THREE.LineCurve3(a.clone(), b.clone())); };
+  let cur = pts[0];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1], p1 = pts[i], p2 = pts[i + 1];
+    const rr = Math.min(r, p1.distanceTo(p0) / 2, p2.distanceTo(p1) / 2);
+    const a = p1.clone().sub(p0).normalize().multiplyScalar(-rr).add(p1);
+    const b = p2.clone().sub(p1).normalize().multiplyScalar(rr).add(p1);
+    line(cur, a);
+    path.add(new THREE.QuadraticBezierCurve3(a, p1.clone(), b));
+    cur = b;
+  }
+  line(cur, pts[pts.length - 1]);
+  return path;
+}
+const curveFor = (l) => curves[l.id] || (curves[l.id] = roundedCurve(H.linkPoints(l).map((p) => W(p, 0)), 2.4));
+const TRACK_PTS = [];
+H.S.links.forEach((l) => { const c = curveFor(l), n = Math.ceil(c.getLength() / 0.8); for (let i = 0; i <= n; i++) { const p = c.getPointAt(i / n); TRACK_PTS.push([p.x, p.z]); } });
+const nearTrack = (x, z, r) => TRACK_PTS.some(([a, b]) => (a - x) ** 2 + (b - z) ** 2 < r * r);
+const nearStation = (x, z, r) => SP.some((p) => (p.x - x) ** 2 + (p.z - z) ** 2 < r * r);
+
+function dispose(obj) {
+  obj.traverse((o) => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) [].concat(o.material).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });
+  });
+}
+function empty(group) { group.children.slice().forEach((c) => { group.remove(c); dispose(c); }); }
+const mat = (color, extra) => new THREE.MeshStandardMaterial(Object.assign({ color: col(color), roughness: 0.78, metalness: 0 }, extra || {}));
+function M(color, o) {
+  const key = color + "|" + (o ? JSON.stringify(o) : "");
+  if (!MC.has(key)) MC.set(key, mat(color, o));
+  return MC.get(key);
+}
+function part(g, geo, color, x, y, z, o) {
+  const m = new THREE.Mesh(geo, typeof color === "string" ? M(color, o) : color);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  g.add(m);
+  return m;
+}
+const box = (g, w, h, d, c, x, y, z, o) => part(g, new THREE.BoxGeometry(w, h, d), c, x, y + h / 2, z, o);
+const cyl = (g, rt, rb, h, c, x, y, z, seg = 16, o) => part(g, new THREE.CylinderGeometry(rt, rb, h, seg), c, x, y + h / 2, z, o);
+const dome = (g, r, c, x, y, z, o) => part(g, new THREE.SphereGeometry(r, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), c, x, y, z, o);
+function gable(g, w, h, d, c, x, y, z) {
+  const geo = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-w / 2, 0), new THREE.Vector2(w / 2, 0), new THREE.Vector2(0, h)]), { depth: d, bevelEnabled: false });
+  geo.translate(0, 0, -d / 2);
+  return part(g, geo, c, x, y, z);
+}
+const rgb = (hex) => { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mixHex = (a, b, t) => "#" + col(a).lerp(col(b), t).getHexString();
+
+// ---------- ground painting ----------
+function chamfer(mask, mw, mh, target) {
+  const d = new Float32Array(mw * mh), S2 = 1.4142;
+  for (let k = 0; k < d.length; k++) d[k] = mask[k] === target ? 1e9 : 0;
+  for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) {
+    const k = j * mw + i; let v = d[k]; if (!v) continue;
+    if (i > 0) v = Math.min(v, d[k - 1] + 1);
+    if (j > 0) { v = Math.min(v, d[k - mw] + 1); if (i > 0) v = Math.min(v, d[k - mw - 1] + S2); if (i < mw - 1) v = Math.min(v, d[k - mw + 1] + S2); }
+    d[k] = v;
+  }
+  for (let j = mh - 1; j >= 0; j--) for (let i = mw - 1; i >= 0; i--) {
+    const k = j * mw + i; let v = d[k]; if (!v) continue;
+    if (i < mw - 1) v = Math.min(v, d[k + 1] + 1);
+    if (j < mh - 1) { v = Math.min(v, d[k + mw] + 1); if (i < mw - 1) v = Math.min(v, d[k + mw + 1] + S2); if (i > 0) v = Math.min(v, d[k + mw - 1] + S2); }
+    d[k] = v;
+  }
+  return d;
+}
+function buildMask() {
+  if (MASK) return MASK;
+  const MG = 4, mw = Math.round((G.x1 - G.x0) * MG), mh = Math.round((G.z1 - G.z0) * MG);
+  const water = new Uint8Array(mw * mh);
+  for (let j = 0; j < mh; j++) for (let i = 0; i < mw; i++) water[j * mw + i] = isWater(G.x0 + (i + 0.5) / MG, G.z0 + (j + 0.5) / MG) ? 1 : 0;
+  MASK = { MG, mw, mh, water, dW: chamfer(water, mw, mh, 1), dL: chamfer(water, mw, mh, 0) };
+  return MASK;
+}
+const maskIdx = (x, z) => {
+  const m = MASK, i = Math.min(m.mw - 1, Math.max(0, Math.floor((x - G.x0) * m.MG))), j = Math.min(m.mh - 1, Math.max(0, Math.floor((z - G.z0) * m.MG)));
+  return j * m.mw + i;
+};
+const shoreDist = (x, z) => { const k = maskIdx(x, z); return MASK.water[k] ? 0 : MASK.dL[k] / MASK.MG; };
+
+function paintGround(P) {
+  const m = buildMask();
+  const PX = 8, cw = Math.round((G.x1 - G.x0) * PX), ch = Math.round((G.z1 - G.z0) * PX);
+  const cv = document.createElement("canvas");
+  cv.width = cw; cv.height = ch;
+  const g = cv.getContext("2d");
+  const img = g.createImageData(cw, ch), D = img.data;
+  const C = {}; ["land", "street", "sand", "shallow", "deep", "foam", "park", "parkDot", "path", "parking", "grass", "grass2", "runway", "mark", "haze"].forEach((k) => { C[k] = rgb(P[k]); });
+  const tints = P.tints.map(rgb), cars = P.cars.map(rgb);
+  // Street plan: a Voronoi patchwork of grids at odd angles, like neighbourhoods meeting.
+  const r = rng(23);
+  const seeds = Array.from({ length: 14 }, () => {
+    const a = (r() - 0.5) * 1.04;
+    return { x: G.x0 + r() * (G.x1 - G.x0), z: G.z0 + r() * (G.z1 - G.z0), c: Math.cos(a), s: Math.sin(a), bs: 3 + r() * 1.4, ar: 1.5 + r() * 0.6 };
+  });
+  const T = [0, 0, 0];
+  const set = (c) => { T[0] = c[0]; T[1] = c[1]; T[2] = c[2]; };
+  const mix = (c, t) => { T[0] += (c[0] - T[0]) * t; T[1] += (c[1] - T[1]) * t; T[2] += (c[2] - T[2]) * t; };
+  const [common, garden] = SC.parks;
+  const AB = { x0: Math.min(...SC.airport.map((p) => p[0])), x1: Math.max(...SC.airport.map((p) => p[0])), z0: Math.min(...SC.airport.map((p) => p[1])), z1: Math.max(...SC.airport.map((p) => p[1])) };
+
+  function landPixel(x, z) {
+    if (x > AB.x0 && x < AB.x1 && z > AB.z0 && z < AB.z1 && inPoly(x, z, SC.airport)) {
+      for (const rw of SC.runways) {
+        const q = inRunway(x, z, rw);
+        if (q) { set(Math.abs(q.v) < 0.07 && Math.floor(q.u / 1.1) % 2 === 0 ? C.mark : C.runway); return; }
+      }
+      set((Math.floor(x * 0.7 + z * 0.35) & 1) ? C.grass : C.grass2);
+      return;
+    }
+    if (inIsland(x, z)) { set(C.park); if (hash3(Math.floor(x * 2), Math.floor(z * 2), 5) < 0.12) set(C.parkDot); return; }
+    for (const p of SC.parks) {
+      const dx = x - p.x, dz = z - p.z;
+      if (Math.abs(dx) > p.w / 2 || Math.abs(dz) > p.d / 2) continue;
+      set(C.park);
+      if (hash3(Math.floor(x * 2.5), Math.floor(z * 2.5), 9) < 0.1) set(C.parkDot);
+      if (p === common) {
+        const k = p.d / p.w;
+        if (Math.abs(dz - dx * k) < 0.2 || Math.abs(dz + dx * k) < 0.2 || Math.abs(dz) < 0.15) set(C.path);
+        if ((dx - 2) ** 2 + (dz - 1.6) ** 2 < 1.1) { set(C.shallow); }
+      } else if (p === garden) {
+        if (((dx + 0.3) / 2.1) ** 2 + (dz / 0.9) ** 2 < 1) set(C.shallow);
+        if (Math.abs(dx - 0.2) < 0.12 && Math.abs(dz) < 1.1) set(C.path);
+      }
+      return;
+    }
+    let b1 = 1e9, b2 = 1e9, si = 0;
+    for (let i = 0; i < seeds.length; i++) {
+      const dx = x - seeds[i].x, dz = z - seeds[i].z, d = dx * dx + dz * dz;
+      if (d < b1) { b2 = b1; b1 = d; si = i; } else if (d < b2) b2 = d;
+    }
+    const sd = seeds[si];
+    const u = x * sd.c + z * sd.s, v = -x * sd.s + z * sd.c;
+    const bu = sd.bs * sd.ar, bv = sd.bs;
+    const cu = Math.floor(u / bu), cvv = Math.floor(v / bv);
+    const eu = u - cu * bu, ev = v - cvv * bv;
+    if (Math.sqrt(b2) - Math.sqrt(b1) < 0.4 || eu < 0.17 || ev < 0.17) { set(C.street); }
+    else {
+      const hh = hash3(cu, cvv, si);
+      if (hh < 0.07) { set(C.park); if (hash3(Math.floor(x * 3), Math.floor(z * 3), si) < 0.15) set(C.parkDot); }
+      else if (hh < 0.1) { set(C.parking); const q = hash3(Math.floor(u * 5), Math.floor(v * 9), si + 3); if (q < 0.22 && eu > 0.5 && ev > 0.5 && eu < bu - 0.4 && ev < bv - 0.4) { set(cars[Math.floor(q * 40) % cars.length]); mix(C.parking, 0.35); } }
+      else { set(tints[Math.floor(hh * 977) % tints.length]); if (eu < 0.42 || ev < 0.42 || eu > bu - 0.25 || ev > bv - 0.25) mix(C.street, 0.35); }
+    }
+    mix(C.land, 0.5);
+  }
+
+  for (let py = 0; py < ch; py++) {
+    const z = G.z0 + (py + 0.5) / PX;
+    const mj = Math.min(m.mh - 1, Math.floor((z - G.z0) * m.MG));
+    for (let px = 0; px < cw; px++) {
+      const x = G.x0 + (px + 0.5) / PX;
+      const k = mj * m.mw + Math.min(m.mw - 1, Math.floor((x - G.x0) * m.MG));
+      if (m.water[k]) {
+        const d = m.dW[k] / m.MG;
+        set(C.shallow); mix(C.deep, clamp01((d - 0.3) / 6));
+        const rip = 1 + 0.035 * Math.sin(x * 1.9 + Math.sin(z * 0.8) * 2.2) * Math.sin(z * 2.3 + x * 0.3);
+        T[0] *= rip; T[1] *= rip; T[2] *= rip;
+        if (d < 0.35) set(C.foam);
+      } else if (m.dL[k] / m.MG < 0.8) set(C.sand);
+      else landPixel(x, z);
+      mix(C.haze, hazeAt(x, z));
+      const o = (py * cw + px) * 4;
+      D[o] = T[0]; D[o + 1] = T[1]; D[o + 2] = T[2]; D[o + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return tex;
+}
+
+// ---------- landmarks (primitives only) ----------
+function signTexture() {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 160;
+  const g = c.getContext("2d");
+  g.fillStyle = "#f5f5f2"; g.fillRect(0, 0, 256, 160);
+  g.fillStyle = "#d8261c"; g.beginPath(); g.moveTo(128, 12); g.lineTo(176, 88); g.lineTo(80, 88); g.closePath(); g.fill();
+  g.fillStyle = "#f5f5f2"; g.beginPath(); g.moveTo(128, 38); g.lineTo(152, 76); g.lineTo(104, 76); g.closePath(); g.fill();
+  g.fillStyle = "#1c3d8f"; g.font = "bold 44px Arial, sans-serif"; g.textAlign = "center"; g.fillText("CITGO", 128, 140);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const BUILD = {
+  statehouse(g, P) {
+    box(g, 3.4, 1.5, 2.2, P.brick, 0, 0, 0);
+    [-1, -0.5, 0, 0.5, 1].forEach((i) => cyl(g, 0.09, 0.09, 1.2, P.white, i * 0.7, 0.2, 1.25, 8));
+    gable(g, 1.9, 0.5, 0.35, P.white, 0, 1.4, 1.25);
+    cyl(g, 0.62, 0.66, 0.45, P.white, 0, 1.5, -0.1, 24);
+    dome(g, 0.64, P.gold, 0, 1.95, -0.1, { metalness: 0.8, roughness: 0.3 });
+    cyl(g, 0.07, 0.07, 0.4, P.gold, 0, 2.55, -0.1, 8, { metalness: 0.8, roughness: 0.3 });
+  },
+  customhouse(g, P) {
+    box(g, 3, 1.4, 3, "#d8ccb0", 0, 0, 0);
+    box(g, 1.4, 5.4, 1.4, "#d8ccb0", 0, 1.4, 0);
+    [[0, 1], [0, -1], [1, 0], [-1, 0]].forEach(([dx, dz]) => {
+      const f = part(g, new THREE.CylinderGeometry(0.4, 0.4, 0.06, 20), "#fbf6e8", dx * 0.72, 5.9, dz * 0.72, { emissive: "#fff3cf", emissiveIntensity: P.lit * 0.8 });
+      if (dz) f.rotation.x = Math.PI / 2; else f.rotation.z = Math.PI / 2;
+    });
+    part(g, new THREE.ConeGeometry(1.05, 1.5, 4), "#5f9f86", 0, 6.8 + 0.75, 0).rotation.y = Math.PI / 4;
+  },
+  oldnorth(g, P) {
+    box(g, 1.6, 1.4, 3.2, "#a4523b", 0, 0, 0.5);
+    gable(g, 1.8, 0.7, 3.3, "#5b4035", 0, 1.4, 0.5);
+    box(g, 1, 1.7, 1, "#a4523b", 0, 0, -1.6);
+    box(g, 0.8, 0.9, 0.8, P.white, 0, 1.7, -1.6);
+    box(g, 0.6, 0.7, 0.6, P.white, 0, 2.6, -1.6);
+    box(g, 0.44, 0.5, 0.44, P.white, 0, 3.3, -1.6);
+    part(g, new THREE.ConeGeometry(0.28, 1.7, 8), P.white, 0, 3.8 + 0.85, -1.6);
+    part(g, new THREE.SphereGeometry(0.13, 12, 8), P.gold, 0, 5.7, -1.6, { metalness: 0.8, roughness: 0.3 });
+  },
+  faneuil(g, P) {
+    box(g, 3.2, 1.3, 1.7, P.brick, 0, 0, 0);
+    box(g, 3.24, 0.14, 1.74, P.band, 0, 0.35, 0, { emissive: P.band, emissiveIntensity: P.lit * 0.6 });
+    box(g, 3.24, 0.14, 1.74, P.band, 0, 0.85, 0, { emissive: P.band, emissiveIntensity: P.lit * 0.6 });
+    gable(g, 1.85, 0.6, 3.3, "#6b4a3a", 0, 1.3, 0).rotation.y = Math.PI / 2;
+    cyl(g, 0.3, 0.3, 0.5, P.white, 0, 1.75, 0, 12);
+    dome(g, 0.3, P.gold, 0, 2.25, 0, { metalness: 0.8, roughness: 0.3 });
+    part(g, new THREE.ConeGeometry(0.08, 0.35, 6), P.gold, 0, 2.7, 0, { metalness: 0.8, roughness: 0.3 });
+  },
+  mit(g, P) {
+    box(g, 4.6, 1.5, 2.2, P.stone, 0, 0, 0);
+    [-1.25, -0.75, -0.25, 0.25, 0.75, 1.25].forEach((x) => cyl(g, 0.1, 0.1, 1.25, P.stone, x, 0.15, 1.25, 8));
+    gable(g, 2.9, 0.6, 0.35, P.stone, 0, 1.4, 1.25);
+    cyl(g, 0.9, 0.95, 0.6, P.stone, 0, 1.5, -0.2, 28);
+    dome(g, 0.95, "#c9ccd1", 0, 2.1, -0.2);
+  },
+  bunker(g, P) {
+    const mound = part(g, new THREE.SphereGeometry(2.6, 28, 8, 0, Math.PI * 2, 0, Math.PI / 2), "#8fbf6e", 0, 0, 0);
+    mound.scale.y = 0.25;
+    part(g, new THREE.CylinderGeometry(0.28, 0.55, 5, 4), "#d9d4c7", 0, 0.55 + 2.5, 0).rotation.y = Math.PI / 4;
+    part(g, new THREE.ConeGeometry(0.4, 0.6, 4), "#d9d4c7", 0, 5.85, 0).rotation.y = Math.PI / 4;
+  },
+  fenway(g, P) {
+    box(g, 8, 0.06, 8, "#6fae55", 0, 0, 0);
+    part(g, new THREE.BoxGeometry(2.6, 0.08, 2.6), "#c79a63", 1.8, 0.05, 1.8).rotation.y = Math.PI / 4;
+    part(g, new THREE.BoxGeometry(1.9, 0.09, 1.9), "#6fae55", 1.8, 0.06, 1.8).rotation.y = Math.PI / 4;
+    cyl(g, 0.25, 0.3, 0.12, "#c79a63", 1.8, 0.05, 1.8, 12);
+    box(g, 8.6, 1.6, 0.35, "#2e5e3a", 0, 0, -4.15);              // the Green Monster
+    box(g, 0.9, 1.0, 8.6, "#9aa3ad", 4.45, 0, 0);                  // stands
+    box(g, 8.6, 1.0, 0.9, "#9aa3ad", 0, 0, 4.45);
+    box(g, 0.6, 0.8, 8.6, "#9aa3ad", -4.3, 0, 0);
+    [[-4, -4], [4, -4], [-4, 4], [4, 4]].forEach(([x, z]) => {
+      cyl(g, 0.07, 0.09, 3.4, "#b9bec4", x, 0, z, 6);
+      box(g, 0.55, 0.3, 0.2, "#fbf6e8", x, 3.4, z, { emissive: "#fff6d8", emissiveIntensity: 0.3 + P.lit });
+    });
+  },
+  citgo(g, P) {
+    box(g, 2.2, 2.2, 2, "#c9c2b3", 0, 0, 0);
+    box(g, 0.1, 0.5, 0.1, "#6b6f76", -0.8, 2.2, 0); box(g, 0.1, 0.5, 0.1, "#6b6f76", 0.8, 2.2, 0);
+    const tx = signTexture();
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 1.3), new THREE.MeshStandardMaterial({ map: tx, emissiveMap: tx, side: THREE.DoubleSide, roughness: 0.6, emissive: col("#ffffff"), emissiveIntensity: P.lit * 0.7 }));
+    sign.position.set(0, 3.35, 0.05); sign.castShadow = true;
+    g.add(sign);
+  },
+  hatch(g, P) {
+    box(g, 2.8, 0.25, 1.8, "#e9e4d8", 0, 0, 0);
+    const shell = part(g, new THREE.SphereGeometry(1.35, 24, 10, 0, Math.PI, 0, Math.PI / 2), "#f4f1ea", 0, 0.25, 0.4);
+    shell.rotation.y = Math.PI;
+  },
+  bandstand(g, P) {
+    cyl(g, 0.55, 0.6, 0.45, P.white, 0, 0, 0, 12);
+    part(g, new THREE.ConeGeometry(0.8, 0.5, 8), "#6b8f71", 0, 0.7, 0);
+  },
+  zakim(g, P) {
+    box(g, 1.4, 0.25, 15, "#d9dde2", 0, 0.5, 0);
+    [-3.6, 3.6].forEach((z) => {
+      [-1, 1].forEach((s) => { const leg = box(g, 0.24, 6.6, 0.3, "#f2f4f6", s * 0.55, 0, z); leg.position.y = 3.2; leg.rotation.z = s * 0.17; });
+      box(g, 0.22, 1.2, 0.26, "#f2f4f6", 0, 6.3, z);
+    });
+    const pts = [];
+    [-3.6, 3.6].forEach((z) => { for (let i = 1; i <= 6; i++) [-1, 1].forEach((sd) => { pts.push(0, 7.2, z, sd * 0.6, 0.75, z + (z < 0 ? -1 : 1) * i * 0.6 * (i > 3 ? 1.1 : 1)); pts.push(0, 7.0, z, sd * 0.6, 0.75, z - (z < 0 ? -1 : 1) * i * 0.55); }); });
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+    g.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: col("#f7f8fa") })));
+  },
+  constitution(g, P) {
+    const ship = new THREE.Group(); g.add(ship);
+    box(ship, 3.6, 0.6, 0.8, "#2b2b2e", 0, -0.2, 0);
+    box(ship, 3.62, 0.12, 0.82, "#e8e2d0", 0, 0.15, 0);
+    [[-1.1, 2.6], [0, 3.1], [1.1, 2.4]].forEach(([x, h]) => {
+      cyl(ship, 0.05, 0.06, h, "#5a4632", x, 0.4, 0, 6);
+      box(ship, 0.05, 0.7, 0.95, "#fbf8f0", x, 0.9, 0);
+      box(ship, 0.05, 0.5, 0.7, "#fbf8f0", x, 1.75, 0);
+    });
+    box(ship, 0.02, 0.22, 0.4, "#c0392b", -1.1, 2.75, 0.2);
+    life.push((t) => { ship.position.y = 0.05 * Math.sin(t * 1.3); ship.rotation.x = 0.03 * Math.sin(t * 1.1); });
+  }
+};
+
+// Where track crosses water: the Red Line gets the Longfellow's "salt and pepper" towers, others a plain deck.
+function bridges(P) {
+  H.S.links.forEach((l) => {
+    const c = curveFor(l), len = c.getLength();
+    const wet = [];
+    for (let d = 0; d <= len; d += 0.4) { const p = c.getPointAt(d / len); if (isWater(p.x, p.z)) wet.push(d); }
+    if (!wet.length) return;
+    const d0 = wet[0] - 1.2, d1 = wet[wet.length - 1] + 1.2, mid = c.getPointAt(clamp01((d0 + d1) / 2 / len));
+    const t = c.getTangentAt(clamp01((d0 + d1) / 2 / len));
+    const g = new THREE.Group();
+    g.position.copy(mid);
+    g.rotation.y = Math.atan2(t.x, t.z);
+    const L = d1 - d0;
+    box(g, 2.8, 0.3, L, "#bfb29a", 0, -0.12, 0);
+    if (l.kind === "wan") {
+      for (let i = 0; i < 4; i++) {
+        const z = -L / 2 + (L / 3) * i;
+        [-1.45, 1.45].forEach((x) => { cyl(g, 0.32, 0.36, 1.2, "#c8baa0", x, 0, z, 16); dome(g, 0.34, "#c8baa0", x, 1.2, z); });
+      }
+    }
+    world.add(g);
+  });
+}
+
+// ---------- the town ----------
+function riseF(delay, now) {
+  if (riseT0 === -Infinity) return 1;
+  const u = clamp01((now - riseT0 - delay * 1000) / 600);
+  return 1 - Math.pow(1 - u, 3);
+}
+function instanced(geo, material, items, apply) {
+  if (!items.length) return;
+  const im = new THREE.InstancedMesh(geo, material, items.length);
+  im.castShadow = true; im.receiveShadow = true;
+  items.forEach((it, i) => im.setColorAt(i, col(it.color)));
+  world.add(im);
+  const r = { im, items, apply };
+  risers.push(r);
+  updateRiser(r, performance.now());
+}
+const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), V3 = new THREE.Vector3(), S3 = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
+function updateRiser(r, now) {
+  r.items.forEach((it, i) => { r.apply(it, Math.max(0.001, riseF(it.delay, now))); r.im.setMatrixAt(i, M4.compose(V3, Q, S3)); });
+  r.im.instanceMatrix.needsUpdate = true;
+}
+
+function buildWorld() {
+  const key = H.state.theme;
+  if (worldKey === key) return;
+  worldKey = key;
+  empty(world);
+  MC.clear();
+  risers = []; life = [];
+  const P = PAL[key] || PAL.day;
+  hemi.color.set(P.hemi[0]); hemi.groundColor.set(P.hemi[1]); hemi.intensity = P.hemi[2] * LU;
+  sun.color.set(P.sun[0]); sun.intensity = P.sun[1] * LU;
+  rim.color.set(P.rim[0]); rim.intensity = P.rim[1] * LU;
+  scene.background = col(P.haze);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(G.x1 - G.x0, G.z1 - G.z0), mat("#ffffff", { map: paintGround(P), roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set((G.x0 + G.x1) / 2, 0, (G.z0 + G.z1) / 2);
+  ground.receiveShadow = true;
+  world.add(ground);
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), mat(P.haze, { roughness: 1 }));
+  outer.rotation.x = -Math.PI / 2; outer.position.set(UC.x, -0.05, UC.z);
+  world.add(outer);
+  bridges(P);
+
+  // Landmarks: hand-picked spots, nudged outward if a track or station is in the way.
+  const placed = [];
+  SC.landmarks.forEach((lm) => {
+    let x = lm.x, z = lm.z == null ? riverZ(lm.x) : lm.z;
+    if (!lm.fixed) {
+      const ok = (px, pz) => !isWater(px, pz) && !nearTrack(px, pz, 3.4 + lm.r * 0.6) && !nearStation(px, pz, 4.6 + lm.r * 0.6);
+      search: for (let rad = 0; rad <= 8; rad += 1) for (let a = 0; a < 12; a++) {
+        const px = lm.x + Math.cos(a * Math.PI / 6) * rad, pz = lm.z + Math.sin(a * Math.PI / 6) * rad;
+        if (ok(px, pz)) { x = px; z = pz; break search; }
+        if (rad === 0) break;
+      }
+    }
+    const g = new THREE.Group();
+    BUILD[lm.kind](g, P);
+    g.position.set(x, 0, z);
+    g.userData.delay = Math.hypot(x - UC.x, z - UC.z) * 0.011;
+    g.userData.rise = true;
+    world.add(g);
+    placed.push([x, z, lm.r]);
+  });
+
+  // Town: rejection-sampled buildings (70 inside the usable area, 190 in the ring), some become trees.
+  const r = rng(7), spots = [];
+  const okSpot = (x, z) => !isWater(x, z) && shoreDist(x, z) > 1.2 && !inPoly(x, z, SC.airport) && !inPark(x, z, 0.6) &&
+    !nearTrack(x, z, 3.4) && !nearStation(x, z, 4.6) && !placed.some(([a, b, rr]) => (a - x) ** 2 + (b - z) ** 2 < (rr + 1.6) ** 2) &&
+    !spots.some((s) => (s.x - x) ** 2 + (s.z - z) ** 2 < 2.3 * 2.3);
+  const sample = (inside, want, tries, treeP) => {
+    let got = 0;
+    for (let i = 0; i < tries && got < want; i++) {
+      const x = G.x0 + r() * (G.x1 - G.x0), z = G.z0 + r() * (G.z1 - G.z0);
+      const isIn = x > U.x0 && x < U.x1 && z > U.z0 && z < U.z1;
+      if (isIn !== inside || !okSpot(x, z)) continue;
+      spots.push({ x, z, inside, tree: r() < treeP });
+      got++;
+    }
+  };
+  sample(true, 70, 4000, 0.22);
+  sample(false, 190, 6000, 0.3);
+
+  const walls = [], glass = [], roofs = [], bands = [], trees = [];
+  const haze = P.haze;
+  spots.forEach((s) => {
+    const hz = hazeAt(s.x, s.z), delay = Math.hypot(s.x - UC.x, s.z - UC.z) * 0.011;
+    if (s.tree) { trees.push({ x: s.x, z: s.z, s: 0.8 + r() * 0.5, color: mixHex(P.crowns[Math.floor(r() * 2)], haze, hz), delay }); return; }
+    const w = 1.3 + r() * 1.1, d = 1.3 + r() * 1.1, turn = Math.floor(r() * 4) * Math.PI / 2;
+    const down = 1 + 2.4 * Math.exp(-Math.hypot(s.x, s.z) / 14);
+    const h = (0.8 + r() * 1.6) * down;
+    const isGlass = h > 3.2 && r() < 0.5;
+    const b = { x: s.x, z: s.z, w, d, h, turn, delay, color: mixHex(isGlass ? P.glass : P.walls[Math.floor(r() * P.walls.length)], haze, hz) };
+    (isGlass ? glass : walls).push(b);
+    roofs.push({ b, color: mixHex(isGlass ? P.glassRoof : P.roof, haze, hz), delay });
+    if (s.inside && !isGlass && h < 3.2) for (let y = 0.45; y < h - 0.3; y += 0.6) bands.push({ b, y, color: mixHex(P.band, haze, hz), delay });
+  });
+  // Trees in the parks and on the islands.
+  const [common, garden] = SC.parks;
+  [[common, 16], [garden, 7]].forEach(([p, n]) => {
+    for (let i = 0; i < n * 4 && n > 0; i++) {
+      const x = p.x + (r() - 0.5) * (p.w - 0.8), z = p.z + (r() - 0.5) * (p.d - 0.8);
+      if (nearTrack(x, z, 1.4) || isWater(x, z) || placed.some(([a, b, rr]) => (a - x) ** 2 + (b - z) ** 2 < (rr + 0.6) ** 2)) continue;
+      if (p === garden && ((x - p.x + 0.3) / 2.3) ** 2 + ((z - p.z) / 1.1) ** 2 < 1) continue;
+      if (p === common && (x - p.x - 2) ** 2 + (z - p.z - 1.6) ** 2 < 1.6) continue;
+      trees.push({ x, z, s: 0.6 + r() * 0.35, color: P.crowns[Math.floor(r() * 2)], delay: Math.hypot(x - UC.x, z - UC.z) * 0.011 }); n--;
+    }
+  });
+  SC.islands.forEach(([cx, cz, rad]) => {
+    for (let i = 0; i < 5; i++) { const a = r() * 6.28, d = r() * rad * 0.6, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+      trees.push({ x, z, s: 0.7 + r() * 0.4, color: mixHex(P.crowns[i % 2], haze, hazeAt(x, z)), delay: 1 }); }
+  });
+
+  const rbox = (() => {
+    const a = 0.5, rr = 0.14, s = new THREE.Shape();
+    s.moveTo(-a + rr, -a); s.lineTo(a - rr, -a); s.quadraticCurveTo(a, -a, a, -a + rr); s.lineTo(a, a - rr); s.quadraticCurveTo(a, a, a - rr, a);
+    s.lineTo(-a + rr, a); s.quadraticCurveTo(-a, a, -a, a - rr); s.lineTo(-a, -a + rr); s.quadraticCurveTo(-a, -a, -a + rr, -a);
+    const g = new THREE.ExtrudeGeometry(s, { depth: 0.92, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.03, bevelSegments: 2, curveSegments: 3 });
+    g.rotateX(-Math.PI / 2); g.translate(0, 0.04, 0);
+    return g;
+  })();
+  const placeWall = (b, f) => { V3.set(b.x, 0, b.z); Q.setFromAxisAngle(UP, b.turn); S3.set(b.w, b.h * f, b.d); };
+  instanced(rbox, mat("#ffffff", { roughness: 0.8 }), walls, placeWall);
+  instanced(rbox.clone(), mat("#ffffff", { roughness: 0.25, metalness: 0.25 }), glass, placeWall);
+  const unit = new THREE.BoxGeometry(1, 1, 1);
+  instanced(unit, mat("#ffffff", { roughness: 0.85 }), roofs, (it, f) => { const b = it.b; V3.set(b.x, b.h * f + 0.04, b.z); Q.setFromAxisAngle(UP, b.turn); S3.set(b.w - 0.2, 0.08, b.d - 0.2); });
+  instanced(unit.clone(), mat("#ffffff", { roughness: 0.6, emissive: col(P.band), emissiveIntensity: P.lit * 0.55 }), bands,
+    (it, f) => { const b = it.b; V3.set(b.x, it.y * f, b.z); Q.setFromAxisAngle(UP, b.turn); S3.set(b.w + 0.03, 0.13 * f, b.d + 0.03); });
+  const trunk = new THREE.CylinderGeometry(0.1, 0.13, 0.7, 5); trunk.translate(0, 0.35, 0);
+  instanced(trunk, mat("#ffffff"), trees.map((t) => Object.assign({}, t, { color: P.trunk })), (t, f) => { V3.set(t.x, 0, t.z); Q.identity(); S3.set(t.s * f, t.s * f, t.s * f); });
+  const crown = new THREE.IcosahedronGeometry(0.72, 0); crown.translate(0, 1.2, 0);
+  instanced(crown, mat("#ffffff", { flatShading: true, roughness: 0.9 }), trees, (t, f) => { V3.set(t.x, 0, t.z); Q.identity(); S3.set(t.s * f, t.s * 1.1 * f, t.s * f); });
+
+  addLife(P, r);
+}
+
+// Small moving things: sailboats on the Charles, swan boats, a plane off Logan every 20 s, gulls.
+function addLife(P, r) {
+  const sailGeo = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(0.7, 0), new THREE.Vector2(0, 1.1)]), { depth: 0.03, bevelEnabled: false });
+  for (let i = 0; i < 4; i++) {
+    const b = new THREE.Group();
+    box(b, 0.9, 0.18, 0.32, "#fbfaf6", 0, 0, 0);
+    part(b, sailGeo, i % 2 ? "#fbfaf6" : "#f3d9c4", -0.2, 0.18, 0);
+    world.add(b);
+    const cx = -62 + i * 22 + r() * 8, amp = 5 + r() * 4, sp = 0.05 + r() * 0.05, ph = r() * 6, off = (r() - 0.5) * 0.8;
+    life.push((t) => { const x = cx + amp * Math.sin(t * sp + ph); b.position.set(x, 0.02 + 0.03 * Math.sin(t * 2 + i), riverZ(x) + off); b.rotation.y = Math.cos(t * sp + ph) > 0 ? 0 : Math.PI; });
+  }
+  const gd = SC.parks[1];
+  for (let i = 0; i < 2; i++) {
+    const s = new THREE.Group(); box(s, 0.4, 0.14, 0.22, "#ffffff", 0, 0, 0); box(s, 0.1, 0.2, 0.1, "#ffffff", 0.15, 0.14, 0); world.add(s);
+    life.push((t) => { const a = t * 0.25 + i * Math.PI; s.position.set(gd.x - 0.3 + Math.cos(a) * 1.4, 0.02, gd.z + Math.sin(a) * 0.55); s.rotation.y = -a; });
+  }
+  const rw = SC.runways[0], plane = new THREE.Group();
+  part(plane, new THREE.CylinderGeometry(0.16, 0.16, 2, 10), "#f7f8fa", 0, 0, 0).rotation.z = Math.PI / 2;
+  box(plane, 0.5, 0.05, 2.2, "#f7f8fa", 0.1, -0.03, 0);
+  box(plane, 0.3, 0.5, 0.05, "#d8261c", -0.85, 0.05, 0);
+  world.add(plane);
+  const dir = new THREE.Vector3(Math.cos(rw.a), 0, Math.sin(rw.a)), start = new THREE.Vector3(rw.x, 0.25, rw.z).addScaledVector(dir, -rw.len / 2 + 1.5);
+  plane.rotation.y = -rw.a;
+  life.push((t) => {
+    const c = t % 20;
+    const d = 0.9 * c * c;
+    plane.visible = c < 7.5;
+    plane.position.copy(start).addScaledVector(dir, d);
+    plane.position.y = 0.25 + Math.max(0, d - rw.len * 0.55) * 0.22;
+    plane.rotation.z = d > rw.len * 0.55 ? 0.12 : 0;
+  });
+  for (let i = 0; i < 4; i++) {
+    const gl = new THREE.Group();
+    const wl = box(gl, 0.45, 0.03, 0.12, "#fbfbfb", -0.2, 0, 0), wr = box(gl, 0.45, 0.03, 0.12, "#fbfbfb", 0.2, 0, 0);
+    world.add(gl);
+    life.push((t) => { const a = t * 0.35 + i * 1.6, rr = 6 + i * 1.5; gl.position.set(60 + Math.cos(a) * rr, 7 + i * 0.6, -6 + Math.sin(a) * rr); gl.rotation.y = -a; const fl = 0.4 * Math.sin(t * 8 + i); wl.rotation.z = fl; wr.rotation.z = -fl; });
+  }
+}
+
+// ---------- the network (rebuilt on every change) ----------
+const SEV_VAR = { good: "--good", warn: "--warn", crit: "--crit", unknown: "--unknown" };
+function flatTube(curve, radius, color, yScale, y, o) {
+  const len = curve.getLength();
+  const m = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(24, Math.round(len * 3)), radius, 10, false), mat(color, o));
+  m.scale.y = yScale; m.position.y = y;
+  m.receiveShadow = true;
+  return m;
+}
+function buildNet() {
+  const keep = {};
+  trains.forEach((t) => { keep[t.key] = t.t; });
+  empty(net);
+  labels.forEach((l) => l.el.remove());
+  labels = []; trains = []; pulses = []; pickables = [];
+  const P = PAL[H.state.theme] || PAL.day;
+  const night = H.state.theme === "midnight";
+
+  H.S.links.forEach((l) => {
+    const lineId = H.lineOf[l.id], c = H.cssColor(lineId);
+    const curve = curveFor(l), len = curve.getLength();
+    const w = (l.capacity_mbps || 0) >= 1000 ? 1.0 : 0.9;
+    const sel = H.state.selected === l.id;
+    const g = new THREE.Group();
+    g.userData.id = l.id;
+    if (l.planned) {
+      const dash = mat(c, { transparent: true, opacity: 0.7 });
+      for (let d = 0.6; d < len - 0.6; d += 1.6) {
+        const p = curve.getPointAt(d / len), t = curve.getTangentAt(d / len);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, 0.8), dash);
+        m.position.set(p.x, 0.04, p.z); m.rotation.y = Math.atan2(t.x, t.z);
+        g.add(m);
+      }
+    } else {
+      const casing = flatTube(curve, w / 2 + 0.17, night ? "#dfe5f2" : "#ffffff", 0.5, 0.12, { roughness: 0.6 });
+      casing.castShadow = true;
+      g.add(casing, flatTube(curve, w / 2 * 0.86, c, 0.32, 0.38, { roughness: 0.45, emissive: col(c), emissiveIntensity: sel ? 0.7 : night ? 0.4 : 0.04 }));
+    }
+    net.add(g);
+    pickables.push(g);
+
+    const lstate = H.worst(H.alertsFor(l.id));
+    if (lstate === "crit" || lstate === "warn") {
+      const sc = H.cssVar(SEV_VAR[lstate]);
+      const glow = flatTube(curve, w / 2 + 0.6, sc, 0.4, 0.15, { transparent: true, opacity: 0.45, emissive: col(sc), emissiveIntensity: 0.8, depthWrite: false });
+      net.add(glow); pulses.push(glow);
+    }
+    if (lstate === "crit" || H.nodeState(H.nodes[l.a]) === "crit" || H.nodeState(H.nodes[l.b]) === "crit") return;
+    const { ab, ba } = H.measured(l);
+    [[ab, 1], [ba, -1]].forEach(([rate, dir]) => {
+      if (!(rate > 0)) return;
+      const count = Math.max(1, Math.min(5, Math.round(1 + Math.log10(1 + rate * 20))));
+      const speed = (22 + 16 * Math.log10(1 + rate * 10)) / 10;
+      for (let i = 0; i < count; i++) {
+        const car = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 0.75), mat(night ? "#e9edf6" : "#ffffff", { roughness: 0.35, emissive: col(night ? "#ffffff" : "#000000"), emissiveIntensity: night ? 0.2 : 0 }));
+        body.castShadow = true;
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.14, 0.8), mat(c, { emissive: col(c), emissiveIntensity: 0.3 }));
+        stripe.position.y = -0.05;
+        car.add(body, stripe);
+        net.add(car);
+        const key = `${l.id}:${dir}:${i}`;
+        trains.push({ key, obj: car, curve, len, dir, speed, t: key in keep ? keep[key] : (i / count) * len + (dir < 0 ? len / (2 * count) : 0) });
+      }
+    });
+  });
+
+  H.S.nodes.forEach((n) => {
+    const p = W(H.P(n.id)), st = H.nodeState(n), hub = H.isHub(n), sel = H.state.selected === n.id;
+    const served = H.S.links.filter((l) => l.a === n.id || l.b === n.id);
+    const unknown = st === "unknown";
+    const r = hub ? (n.id === "central" ? 2.1 : 1.7) : 0.95;
+    const rimC = st === "crit" ? H.cssVar("--crit") : unknown ? H.cssVar("--unknown") : hub ? P.hubRim : H.cssColor(H.lineOf[served[0].id]);
+    const g = new THREE.Group();
+    g.position.set(p.x, 0, p.z);
+    g.userData.id = n.id;
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.8, 40), mat(rimC, { roughness: 0.5 }));
+    base.position.y = 0.4; base.castShadow = true;
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * (hub ? 0.62 : 0.55), r * (hub ? 0.62 : 0.55), 0.84, 40),
+      mat(st === "crit" ? H.cssVar("--crit") : P.station, { roughness: 0.4, transparent: unknown, opacity: unknown ? 0.75 : 1 }));
+    cap.position.y = 0.42;
+    g.add(base, cap);
+    if (st === "crit") {
+      const xm = mat("#ffffff", { emissive: col("#ffffff"), emissiveIntensity: 0.5 });
+      [Math.PI / 4, -Math.PI / 4].forEach((a) => { const bar = new THREE.Mesh(new THREE.BoxGeometry(r * 0.85, 0.1, 0.2), xm); bar.position.y = 0.88; bar.rotation.y = a; g.add(bar); });
+    }
+    if (st === "warn" || st === "crit") {
+      const sc = H.cssVar(SEV_VAR[st]);
+      const halo = new THREE.Mesh(new THREE.RingGeometry(r + 0.35, r + 1.3, 40), mat(sc, { transparent: true, opacity: 0.5, emissive: col(sc), emissiveIntensity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
+      halo.rotation.x = -Math.PI / 2; halo.position.y = 0.06;
+      g.add(halo); pulses.push(halo);
+    }
+    if (sel) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(r + 0.6, 0.18, 10, 48), mat(H.cssVar("--info"), { emissive: col(H.cssVar("--info")), emissiveIntensity: 0.8 }));
+      ring.rotation.x = Math.PI / 2; ring.position.y = 0.3;
+      g.add(ring);
+    }
+    net.add(g);
+    pickables.push(g);
+
+    const el = H.h("div", { class: "lbl3d" + (hub ? " hub" : "") }, [n.label]);
+    if (n.sublabel && hub) el.append(H.h("small", { text: n.sublabel }));
+    const a = H.alertsFor(n.id).filter((x) => x.severity !== "info")[0];
+    if (a) el.append(H.h("div", {}, [H.h("span", { class: "chip3d " + a.severity }, [H.h("i", { text: a.severity === "crit" ? "×" : "!" }), H.THEME[a.kind].t])]));
+    labelLayer.append(el);
+    // Directions of the track leaving this station, used to put the label on the emptiest side.
+    const dirs = served.map((l) => { const c = curveFor(l), len = c.getLength(), u = l.a === n.id ? Math.min(1, 2.5 / len) : Math.max(0, 1 - 2.5 / len); return c.getPointAt(u); });
+    labels.push({ el, pos: new THREE.Vector3(p.x, 0.8, p.z), dirs, hub, r });
+  });
+  labels.sort((a, b) => (b.hub ? 1 : 0) - (a.hub ? 1 : 0));
+  placeLabels();
+}
+
+// ---------- labels ----------
+const pv = new THREE.Vector3();
+const SIDES = [["right", 0], ["above", -Math.PI / 2], ["left", Math.PI], ["below", Math.PI / 2]];
+function toScreen(v3, w, h) { pv.copy(v3).project(camera); return [((pv.x + 1) / 2) * w, ((1 - pv.y) / 2) * h]; }
+function placeLabels() {
+  const w = host.clientWidth, h = host.clientHeight;
+  const ppu = (h / (camera.top - camera.bottom)) * camera.zoom;
+  const taken = [];
+  const overlaps = (r) => taken.some((t) => r.x0 < t.x1 && r.x1 > t.x0 && r.y0 < t.y1 && r.y1 > t.y0);
+  labels.forEach((l) => {
+    const [sx, sy] = toScreen(l.pos, w, h);
+    if (!l.hub && ppu < 3.2) { l.el.style.display = "none"; return; }
+    l.el.style.display = "";
+    const angs = l.dirs.map((d) => { const [dx, dy] = toScreen(d, w, h); return Math.atan2(dy - sy, dx - sx); });
+    const ranked = SIDES.map((sd, i) => {
+      let m = Math.PI;
+      angs.forEach((a) => { let d = Math.abs(a - sd[1]) % (2 * Math.PI); if (d > Math.PI) d = 2 * Math.PI - d; m = Math.min(m, d); });
+      return { side: sd[0], score: m - i * 0.01 };
+    }).sort((a, b) => b.score - a.score);
+    const off = l.r * ppu + 6;
+    const lw = l.el.offsetWidth || 60, lh = l.el.offsetHeight || 16;
+    const rect = (sd) => sd === "right" ? { x0: sx + off, x1: sx + off + lw, y0: sy - lh / 2, y1: sy + lh / 2 } :
+      sd === "left" ? { x0: sx - off - lw, x1: sx - off, y0: sy - lh / 2, y1: sy + lh / 2 } :
+      sd === "above" ? { x0: sx - lw / 2, x1: sx + lw / 2, y0: sy - off - lh, y1: sy - off } : { x0: sx - lw / 2, x1: sx + lw / 2, y0: sy + off, y1: sy + off + lh };
+    const pick = ranked.find((c) => c.score > 0.5 && !overlaps(rect(c.side))) || ranked[0];
+    const side = pick.side;
+    taken.push(rect(side));
+    l.el.dataset.side = side;
+    l.el.style.transform =
+      side === "right" ? `translate(${sx + off}px, ${sy}px) translate(0, -50%)` :
+      side === "left" ? `translate(${sx - off}px, ${sy}px) translate(-100%, -50%)` :
+      side === "above" ? `translate(${sx}px, ${sy - off}px) translate(-50%, -100%)` :
+      `translate(${sx}px, ${sy + off}px) translate(-50%, 0)`;
+  });
+}
+
+// ---------- loop ----------
+const tmp = new THREE.Vector3();
+function loop() {
+  if (!active) return;
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt = Math.min(0.1, clock.getDelta()), t = clock.elapsedTime;
+  stepAnim(now);
+  controls.update();
+  if (riseT0 !== -Infinity) {
+    if (now - riseT0 > 2600) riseT0 = -Infinity;
+    risers.forEach((r) => updateRiser(r, now));
+    world.children.forEach((g) => { if (g.userData.rise) g.scale.y = Math.max(0.001, riseF(g.userData.delay, now)); });
+  }
+  if (H.state.motion) {
+    trains.forEach((tr) => { tr.t = (tr.t + tr.dir * tr.speed * dt + tr.len) % tr.len; });
+    const k = 0.55 + 0.45 * Math.sin(t * 4);
+    pulses.forEach((m) => { m.material.opacity = 0.2 + 0.45 * k; });
+    life.forEach((f) => f(t));
+  }
+  trains.forEach((tr) => {
+    const u = tr.t / tr.len, p = tr.curve.getPointAt(u);
+    tr.obj.position.set(p.x, 0.62, p.z);
+    tmp.copy(tr.curve.getTangentAt(u)).add(tr.obj.position); tmp.y = 0.62;
+    tr.obj.lookAt(tmp);
+    tr.obj.rotateY(Math.PI / 2);
+  });
+  renderer.render(scene, camera);
+  placeLabels();
+}
+
+function build() {
+  if (!renderer) return;
+  buildWorld();
+  buildNet();
+}
+
+H.views["3d"] = {
+  show() {
+    const first = !renderer;
+    if (first && !failed) init();
+    if (failed) return;
+    resize();
+    riseT0 = -Infinity;
+    build();
+    requestAnimationFrame(() => { resize(); fold(); });
+    if (!active) { active = true; clock.getDelta(); loop(); }
+  },
+  hide() { active = false; },
+  reset() { if (renderer) reset(); },
+  rotate
+};
+H.listeners.push(() => { if (active) build(); });
+if (H.state.view === "3d" && !active) H.views["3d"].show();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{"response": {"result": "success", "message": null, "data": [
+  {"stat_id": "top_movies", "rows": [{"title": "Big Movie", "total_plays": 3, "thumb": "/library/metadata/200/thumb/1700000002"}]},
+  {"stat_id": "top_tv", "rows": [{"title": "Star Show", "total_plays": 5, "grandparent_thumb": "/library/metadata/100/thumb/1700000000"}]},
+  {"stat_id": "top_users", "rows": [
+    {"user": "alice", "friendly_name": "Alice", "user_id": 11, "total_plays": 6, "total_duration": 21600},
+    {"user": "bob", "friendly_name": "Bob", "user_id": 12, "total_plays": 3, "total_duration": 10800}]}
+]}}

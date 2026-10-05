@@ -1,0 +1,7 @@
+{"response": {"result": "success", "message": null, "data": {
+  "recordsFiltered": 3, "recordsTotal": 3,
+  "data": [
+    {"date": 1790870000, "user": "alice", "full_title": "Star Show - Pilot", "play_duration": 1800},
+    {"date": 1790860000, "user": "bob", "full_title": "Big Movie", "play_duration": 5400},
+    {"date": 1790500000, "user": "alice", "full_title": "Star Show - Two", "play_duration": 3600}
+  ]}}}

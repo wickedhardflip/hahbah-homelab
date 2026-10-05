@@ -1,0 +1,169 @@
+{
+ "status": "SUCCESS",
+ "cloudflare": "enabled",
+ "records": [
+  {
+   "id": "589589762",
+   "name": "legacymonitor.hahbah.com",
+   "type": "A",
+   "content": "192.168.4.5",
+   "ttl": "600",
+   "prio": "0",
+   "notes": ""
+  },
+  {
+   "id": "589637787",
+   "name": "tautulli.hahbah.com",
+   "type": "A",
+   "content": "192.168.4.5",
+   "ttl": "600",
+   "prio": "0",
+   "notes": ""
+  },
+  {
+   "id": "589589759",
+   "name": "social.hahbah.com",
+   "type": "A",
+   "content": "192.168.4.5",
+   "ttl": "600",
+   "prio": "0",
+   "notes": ""
+  },
+  {
+   "id": "589589752",
+   "name": "replexon.hahbah.com",
+   "type": "A",
+   "content": "192.168.4.5",
+   "ttl": "600",
+   "prio": "0",
+   "notes": ""
+  },
+  {
+   "id": "589589742",
+   "name": "plex.hahbah.com",
+   "type": "A",
+   "content": "192.168.4.5",
+   "ttl": "600",
+   "prio": "0",
+   "notes": ""
+  },
+  {
+   "id": "589589738",
+   "name": "jobs.hahbah.com",
+   "type": "A",
+   "content": "192.168.4.5",
+   "ttl": "600",
+   "prio": "0",
+   "notes": ""
+  },
+  {
+   "id": "589299692",
+   "name": "home.hahbah.com",
+   "type": "A",
+   "content": "192.168.4.5",
+   "ttl": "600",
+   "prio": "0",
+   "notes": ""
+  },
+  {
+   "id": "589298395",
+   "name": "hahbah.com",
+   "type": "ALIAS",
+   "content": "uixie.porkbun.com",
+   "ttl": "600",
+   "prio": null,
+   "notes": null
+  },
+  {
+   "id": "589298400",
+   "name": "*.hahbah.com",
+   "type": "CNAME",
+   "content": "uixie.porkbun.com",
+   "ttl": "600",
+   "prio": null,
+   "notes": null
+  },
+  {
+   "id": "589298347",
+   "name": "hahbah.com",
+   "type": "MX",
+   "content": "fwd2.porkbun.com",
+   "ttl": "600",
+   "prio": "20",
+   "notes": null
+  },
+  {
+   "id": "589298346",
+   "name": "hahbah.com",
+   "type": "MX",
+   "content": "fwd1.porkbun.com",
+   "ttl": "600",
+   "prio": "10",
+   "notes": null
+  },
+  {
+   "id": "589298343",
+   "name": "hahbah.com",
+   "type": "NS",
+   "content": "salvador.porkbun.com",
+   "ttl": "86400",
+   "prio": null,
+   "notes": null
+  },
+  {
+   "id": "589298342",
+   "name": "hahbah.com",
+   "type": "NS",
+   "content": "maceio.porkbun.com",
+   "ttl": "86400",
+   "prio": null,
+   "notes": null
+  },
+  {
+   "id": "589298344",
+   "name": "hahbah.com",
+   "type": "NS",
+   "content": "fortaleza.porkbun.com",
+   "ttl": "86400",
+   "prio": null,
+   "notes": null
+  },
+  {
+   "id": "589298345",
+   "name": "hahbah.com",
+   "type": "NS",
+   "content": "curitiba.porkbun.com",
+   "ttl": "86400",
+   "prio": null,
+   "notes": null
+  },
+  {
+   "id": "589301445",
+   "name": "_acme-challenge.hahbah.com",
+   "type": "TXT",
+   "content": "ozYPs-TnFS6uAoDBHPwrSkIRNC0eVNYNZPwTR-7X2MI",
+   "ttl": "600",
+   "prio": null,
+   "notes": null
+  },
+  {
+   "id": "589301443",
+   "name": "_acme-challenge.hahbah.com",
+   "type": "TXT",
+   "content": "MgMVAJcnXerqbJP8hA-1Zg_FgcvAlcDQw_GK6I1mLrs",
+   "ttl": "600",
+   "prio": null,
+   "notes": null
+  },
+  {
+   "id": "589298348",
+   "name": "hahbah.com",
+   "type": "TXT",
+   "content": "v=spf1 include:_spf.porkbun.com ~all",
+   "ttl": "600",
+   "prio": null,
+   "notes": null
+  }
+ ],
+ "requestId": "01a0fa02-aefa-7966-9056-b699eda5ae38"
+}

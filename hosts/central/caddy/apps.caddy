@@ -1,0 +1,92 @@
+# Generated from apps.yaml by `python -m app.caddygen`. Do not edit by hand.
+
+@jobs host jobs.hahbah.com
+@xsite_jobs expression {method} in ['POST', 'PUT', 'PATCH', 'DELETE'] && {header.Origin} != '' && {header.Origin} != 'https://jobs.hahbah.com'
+handle @jobs {
+	route {
+		respond @xsite_jobs 403
+		request_header -Remote-User
+		request_header -X-Homelab-Proxy
+		forward_auth portal:8000 {
+			uri /auth/verify?role=admin
+			copy_headers Remote-User
+		}
+		reverse_proxy host.docker.internal:8080 {
+			header_up X-Homelab-Proxy {env.HOMELAB_PROXY_SECRET}
+			header_up Cookie "(^|;)\s*hl_session\s*=[^;]*" "$1"
+			header_down Set-Cookie "^\s*hl_session\s*=.*" ""
+		}
+	}
+}
+
+@social host social.hahbah.com
+@xsite_social expression {method} in ['POST', 'PUT', 'PATCH', 'DELETE'] && {header.Origin} != '' && {header.Origin} != 'https://social.hahbah.com'
+handle @social {
+	route {
+		respond @xsite_social 403
+		request_header -Remote-User
+		request_header -X-Homelab-Proxy
+		forward_auth portal:8000 {
+			uri /auth/verify?role=admin
+			copy_headers Remote-User
+		}
+		reverse_proxy host.docker.internal:4434 {
+			header_up X-Homelab-Proxy {env.HOMELAB_PROXY_SECRET}
+			header_up Cookie "(^|;)\s*hl_session\s*=[^;]*" "$1"
+			header_down Set-Cookie "^\s*hl_session\s*=.*" ""
+		}
+	}
+}
+
+@replexon host replexon.hahbah.com
+@xsite_replexon expression {method} in ['POST', 'PUT', 'PATCH', 'DELETE'] && {header.Origin} != '' && {header.Origin} != 'https://replexon.hahbah.com'
+handle @replexon {
+	route {
+		respond @xsite_replexon 403
+		request_header -Remote-User
+		request_header -X-Homelab-Proxy
+		forward_auth portal:8000 {
+			uri /auth/verify?role=admin
+			copy_headers Remote-User
+		}
+		reverse_proxy host.docker.internal:9847 {
+			header_up X-Homelab-Proxy {env.HOMELAB_PROXY_SECRET}
+			header_up Cookie "(^|;)\s*hl_session\s*=[^;]*" "$1"
+			header_down Set-Cookie "^\s*hl_session\s*=.*" ""
+		}
+	}
+}
+
+@plex host plex.hahbah.com
+handle @plex {
+	route {
+		request_header -Remote-User
+		request_header -X-Homelab-Proxy
+		forward_auth portal:8000 {
+			uri /auth/verify
+			copy_headers Remote-User
+		}
+		reverse_proxy host.docker.internal:32400 {
+			header_up Cookie "(^|;)\s*hl_session\s*=[^;]*" "$1"
+			header_down Set-Cookie "^\s*hl_session\s*=.*" ""
+		}
+	}
+}
+
+@tautulli host tautulli.hahbah.com
+@xsite_tautulli expression {method} in ['POST', 'PUT', 'PATCH', 'DELETE'] && {header.Origin} != '' && {header.Origin} != 'https://tautulli.hahbah.com'
+handle @tautulli {
+	route {
+		respond @xsite_tautulli 403
+		request_header -Remote-User
+		request_header -X-Homelab-Proxy
+		forward_auth portal:8000 {
+			uri /auth/verify?role=admin
+			copy_headers Remote-User
+		}
+		reverse_proxy tautulli:8181 {
+			header_up Cookie "(^|;)\s*hl_session\s*=[^;]*" "$1"
+			header_down Set-Cookie "^\s*hl_session\s*=.*" ""
+		}
+	}
+}

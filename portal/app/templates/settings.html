@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en" data-theme="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings · HAHBAH</title>
+<link rel="icon" href="/static/site/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/site/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/site/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight") document.documentElement.dataset.theme = "midnight"; } catch (e) {}</script>
+<style>
+:root, [data-theme="day"] { --bg: #efece3; --panel: #ffffff; --border: #dcd7c9; --ink: #1b1d22; --muted: #646871; --bg-veil: rgba(239,236,227,.9);
+  --good: #1f7a45; --warn: #9a5800; --crit: #c42b2b; --green: #4e6e58; --shadow: 0 1px 2px rgba(20,20,30,.06), 0 4px 16px rgba(20,20,30,.06); }
+[data-theme="midnight"] { --bg: #070b16; --panel: #0f1528; --border: #222c4a; --ink: #e9edf6; --muted: #8e97ad; --bg-veil: rgba(7,11,22,.9);
+  --good: #3ccf7e; --warn: #ffb547; --crit: #ff5d57; --green: #4e6e58; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.35); }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 "Overpass", system-ui, sans-serif; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; filter: saturate(.7);
+  background: linear-gradient(var(--bg-veil), var(--bg-veil)), url("/static/site/station-1920.jpg") center 40% / cover no-repeat; }
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px 8px; }
+.brand { --brand-ink: #f1ece0; display: flex; align-items: center; gap: 10px; background: #4e6e58; color: var(--brand-ink); padding: 7px 14px 12px 8px; border-radius: 6px; border: 3px solid #2a2a2a; box-shadow: inset 0 -5px 0 #f1ece0; font: 700 22px/1 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.brand svg { width: 30px; height: 30px; }
+.brand a { color: inherit; text-decoration: none; padding-top: 4px; }
+.spacer { flex: 1; }
+.user { font-size: 14px; color: var(--muted); display: flex; gap: 10px; align-items: center; margin: 0; }
+.linklike { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
+main { max-width: 980px; margin: 0 auto; padding: 8px 20px 60px; }
+h1 { font: 900 44px/1.05 "Overpass", sans-serif; letter-spacing: -.02em; margin: 14px 0 6px; }
+.kicker { font: 700 12px/1 "JetBrains Mono", monospace; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 10px; margin: 34px 0 10px; }
+.kicker::before { content: ""; width: 30px; height: 6px; border-radius: 3px; background: var(--k, var(--green)); }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 6px 20px; }
+.row { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid var(--border); }
+.row:first-child { border-top: 0; }
+.row .what { flex: 1; }
+.row b { display: block; font-size: 16px; }
+.row span.sub { display: block; color: var(--muted); font-size: 13.5px; }
+.switch { position: relative; width: 52px; height: 30px; flex: none; }
+.switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; z-index: 1; cursor: pointer; }
+.switch i { position: absolute; inset: 0; border-radius: 15px; background: #c9c3b5; transition: background .15s; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .15s; }
+.switch input:checked + i { background: var(--good); }
+.switch input:checked + i::after { transform: translateX(22px); }
+.switch input:focus-visible + i { outline: 2px solid var(--ink); outline-offset: 2px; }
+input[type=text], input[type=number] { font: 600 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; background: var(--panel); color: var(--ink); width: 190px; }
+select, .btn { font: 700 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; background: var(--panel); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.notice { margin: 14px 0 0; padding: 12px 16px; border-radius: 10px; background: color-mix(in srgb, var(--good) 14%, var(--panel)); border: 1px solid color-mix(in srgb, var(--good) 40%, var(--border)); font-weight: 700; }
+.notice.bad { background: color-mix(in srgb, var(--crit) 12%, var(--panel)); border-color: color-mix(in srgb, var(--crit) 40%, var(--border)); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font: 700 11px/1 "JetBrains Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 12px 8px 8px; }
+td { padding: 10px 8px; border-top: 1px solid var(--border); vertical-align: top; }
+td.mono, .mono { font-family: "JetBrains Mono", monospace; font-size: 13px; }
+.pill { font: 800 11px/1 "Overpass", sans-serif; letter-spacing: .05em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.crit { background: color-mix(in srgb, var(--crit) 15%, transparent); color: var(--crit); }
+.pill.warn { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
+.pill.good { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.scroll { overflow-x: auto; }
+table.recips td { vertical-align: middle; }
+table.recips td:nth-child(n+2), table.recips th:nth-child(n+2) { width: 84px; }
+.muted { color: var(--muted); }
+@media (max-width: 640px) { .row { flex-wrap: wrap; } h1 { font-size: 34px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="#F1ECE0" stroke="#1E1E1E" stroke-width="10"/><path fill="#1E1E1E" d="M26 23h14v21h20V23h14v54H60V56H40v21H26z"/></svg><a href="/">HAHBAH</a></div>
+  <div class="spacer"></div>
+  <form class="user" method="post" action="/logout"><a class="linklike" href="/">← Dashboard</a> · {{ user.username }} · <button class="linklike" type="submit">Sign out</button></form>
+</header>
+<main>
+  <h1>Settings</h1>
+  {% set notes = {"saved": "Saved.", "muted": "Alerts muted.", "unmuted": "Alerts back on.", "test-sent": "Test email queued to every address on the list: it should arrive within a minute.", "signed-out": "That account was signed out everywhere.", "address-added": "Address added. It gets a welcome email, and the owners get a notice.", "address-removed": "Address removed. The owners get a notice.", "address-dup": "That address is already on the list.", "address-limit": "Limit reached: at most 5 addresses can be added here. Remove one first.", "address-gone": "That address isn't on the list.", "address-last": "That is the only address left, so it can't be removed. Add another one first.", "primary-set": "Primary address changed.", "address-off": "Adding addresses isn't set up on this server.", "address-failed": "Couldn't save the address list. Try again.", "idle-invalid": "The idle timeout must be a whole number from 15 to 10080 minutes, so it was left as it was."} %}
+  {% if saved.startswith("weather:") %}<div class="notice" role="status">Weather location set to {{ saved[8:] }}. The forecast updates within 15 minutes.</div>
+  {% elif saved == "weather-unknown" %}<div class="notice bad" role="status">Couldn't find that place, so the weather location is unchanged. Try a city name or a ZIP code.</div>
+  {% elif saved == "weather-unreachable" %}<div class="notice bad" role="status">The place lookup (Open-Meteo) didn't answer, so the weather location is unchanged. Try again in a minute.</div>
+  {% elif saved == "sports" %}<div class="notice" role="status">Teams saved. The cards update within a couple of minutes; reload the 3D map to see new colors and signs.</div>
+  {% elif saved == "sports-invalid" %}<div class="notice bad" role="status">That team isn't on the list, so nothing changed. Pick from the menus.</div>
+  {% endif %}
+  {% if saved in notes and not saved in ("address-limit", "address-dup", "address-gone", "address-off", "address-failed", "address-last", "idle-invalid") %}<div class="notice" role="status">{{ notes[saved] }}</div>{% elif saved == "address-invalid" %}<div class="notice bad" role="status">That doesn't look like a valid email address.</div>{% elif saved in ("address-limit", "address-dup", "address-gone", "address-off", "address-failed", "address-last", "idle-invalid") %}<div class="notice bad" role="status">{{ notes[saved] }}</div>{% elif saved == "test-failed" %}<div class="notice bad" role="status">Email isn't set up on this server.</div>{% endif %}
+
+  <form method="post" action="/settings">
+    <input type="hidden" name="action" value="save">
+    <div class="kicker">Display</div>
+    <div class="card">
+      <div class="row"><div class="what"><b>Discreet mode</b></div>
+        <label class="switch"><input type="checkbox" name="discreet" value="1" {% if s.discreet == "1" %}checked{% endif %} aria-label="Discreet mode"><i></i></label></div>
+    </div>
+
+    <div class="kicker" style="--k: #b3402a">Security</div>
+    <div class="card">
+      <div class="row"><div class="what"><b>Sign out when idle</b><span class="sub">Minutes without any request before a session ends (15 to 10080; 480 is eight hours). Sessions also end at their absolute expiry.</span></div>
+        <input type="number" name="idle_minutes" value="{{ s.idle_minutes }}" min="15" max="10080" step="1" style="width:100px" aria-label="Idle timeout in minutes"></div>
+    </div>
+
+    <div class="kicker" style="--k: #7e3f98">Email</div>
+    <div class="card">
+      <div class="row"><div class="what"><b>Morning report</b><span class="sub">One email with Plex backups, every line's status, the key numbers and the last day's incidents.</span></div>
+        <select name="digest_time" aria-label="Morning report time">{% for t in times %}<option value="{{ t }}" {% if s.digest_time == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+        <label class="switch"><input type="checkbox" name="digest_enabled" value="1" {% if s.digest_enabled == "1" %}checked{% endif %} aria-label="Morning report"><i></i></label></div>
+      <div class="row"><div class="what"><b>Instant alerts</b><span class="sub">An email within a couple of minutes when something goes to Danger, and an all-clear when it recovers.</span></div>
+        <label class="switch"><input type="checkbox" name="alerts_enabled" value="1" {% if s.alerts_enabled == "1" %}checked{% endif %} aria-label="Instant alerts"><i></i></label></div>
+      {% if recipients %}
+      <input type="hidden" name="recipients_form" value="1">
+      <div class="row"><div class="what"><b>Who gets them</b><span class="sub">The first address is the primary. Remove any address, or make another one primary; add up to 5 more below. The server's own list is only the starting point, and comes back if every address is removed.</span></div></div>
+      <div class="scroll"><table class="recips"><thead><tr><th>Address</th><th>Alerts</th><th>Report</th></tr></thead><tbody>
+        {% for r in recipients %}
+        <tr><td class="mono">{{ r.addr }}{% if loop.first %} <span class="pill good">primary</span>{% else %} <button class="btn" type="submit" form="mp{{ loop.index }}" aria-label="Make {{ r.addr }} primary">Make primary</button>{% endif %}{% if r.owner %} <span class="pill">owner</span>{% endif %}{% if recipients|length > 1 %} <button class="btn" type="submit" form="rm{{ loop.index }}" aria-label="Remove {{ r.addr }}">Remove</button>{% endif %}</td>
+          <td><label class="switch"><input type="checkbox" name="alert_to" value="{{ r.addr }}" {% if r.alerts %}checked{% endif %} aria-label="Instant alerts to {{ r.addr }}"><i></i></label></td>
+          <td><label class="switch"><input type="checkbox" name="report_to" value="{{ r.addr }}" {% if r.report %}checked{% endif %} aria-label="Morning report to {{ r.addr }}"><i></i></label></td></tr>
+        {% endfor %}
+      </tbody></table></div>
+      {% endif %}
+      <div class="row"><div class="what"></div><button class="btn primary" type="submit">Save</button></div>
+    </div>
+  </form>
+  {% for r in recipients %}<form id="rm{{ loop.index }}" method="post" action="/settings"><input type="hidden" name="action" value="remove_address"><input type="hidden" name="address" value="{{ r.addr }}"></form><form id="mp{{ loop.index }}" method="post" action="/settings"><input type="hidden" name="action" value="make_primary"><input type="hidden" name="address" value="{{ r.addr }}"></form>{% endfor %}
+  {% if web_on %}
+  <form class="card" method="post" action="/settings" style="margin-top:12px">
+    <input type="hidden" name="action" value="add_address">
+    <div class="row"><div class="what"><b>Add address</b><span class="sub">{% if can_add %}It gets a welcome email, and the owners get a notice.{% else %}Limit reached (5). Remove one to add another.{% endif %}</span></div>
+      <input type="email" name="address" maxlength="254" placeholder="name@example.com" aria-label="Email address to add" autocomplete="off" required {% if not can_add %}disabled{% endif %}>
+      <button class="btn primary" type="submit" {% if not can_add %}disabled{% endif %}>Add address</button></div>
+  </form>
+  {% endif %}
+
+  <div class="kicker" style="--k: #2f7fb8">Weather</div>
+  <form class="card" method="post" action="/settings">
+    <input type="hidden" name="action" value="weather">
+    <div class="row"><div class="what"><b>Location</b><span class="sub">Now: {{ s.weather_name }}. Enter a city or ZIP code; you'll see the place it resolves to.</span></div>
+      <input type="text" name="place" maxlength="80" placeholder="City or ZIP" aria-label="Weather location" autocomplete="off" required>
+      <button class="btn primary" type="submit">Set</button></div>
+  </form>
+
+  <div class="kicker" style="--k: #17803f">Sports</div>
+  <form class="card" method="post" action="/settings">
+    <input type="hidden" name="action" value="sports">
+    {% macro team_select(slot, label, now, allow_none) %}<select name="{{ slot }}" aria-label="{{ label }}">{% if allow_none %}<option value="none" {% if now == "none" %}selected{% endif %}>None (hide it)</option>{% endif %}{% for heading, teams in sports_menus[slot] %}<optgroup label="{{ heading }}">{% for value, name in teams %}<option value="{{ value }}" {% if now == value %}selected{% endif %}>{{ name }}</option>{% endfor %}</optgroup>{% endfor %}</select>{% endmacro %}
+    <div class="row"><div class="what"><b>Ballpark</b><span class="sub">The baseball card on the 3D map (Fenway's spot).</span></div>
+      {{ team_select("ballpark", "Ballpark team", s.sports_ballpark, false) }}</div>
+    <div class="row"><div class="what"><b>Arena</b><span class="sub">The card at the old Garden: a basketball or hockey team. Its band, banners and sign take the team's colors.</span></div>
+      {{ team_select("arena", "Arena team", s.sports_arena, false) }}</div>
+    <div class="row"><div class="what"><b>Bus stop</b><span class="sub">The lone stop out of town: any sport (basketball, hockey, football or soccer). Takes the team's colors and city, or choose None to hide it.</span></div>
+      {{ team_select("busstop", "Bus stop team", s.sports_busstop, true) }}</div>
+    <div class="row"><div class="what"><span class="sub">Scores come from MLB's and ESPN's public feeds. No keys needed.</span></div>
+      <button class="btn primary" type="submit">Save teams</button></div>
+  </form>
+
+  <div class="card" style="margin-top:12px">
+    <div class="row"><div class="what"><b>Mute alerts</b><span class="sub">{% if muted %}Muted until {{ mute_until }} (UTC). Incidents are still recorded.{% else %}For planned maintenance. Incidents are still recorded.{% endif %}</span></div>
+      <div class="btns">
+        {% if muted %}<form method="post" action="/settings"><input type="hidden" name="action" value="unmute"><button class="btn" type="submit">Unmute</button></form>
+        {% else %}{% for h in (1, 4, 24) %}<form method="post" action="/settings"><input type="hidden" name="action" value="mute"><input type="hidden" name="hours" value="{{ h }}"><button class="btn" type="submit">{{ h }} h</button></form>{% endfor %}{% endif %}
+      </div></div>
+    <div class="row"><div class="what"><b>Send a test email</b><span class="sub">{% if outbox.on %}Queue: {{ outbox.queued }} waiting{% if outbox.failed %} · <b style="display:inline;color:var(--crit)">{{ outbox.failed }} failed</b>{% endif %}.{% else %}Email isn't set up on this server.{% endif %}</span></div>
+      <form method="post" action="/settings"><input type="hidden" name="action" value="test_email"><button class="btn" type="submit" {% if not outbox.on %}disabled{% endif %}>Send test</button></form></div>
+  </div>
+
+  <div class="kicker" style="--k: #c42b2b">Incidents · last 14 days</div>
+  <div class="card scroll">
+    {% if incidents %}
+    <table><thead><tr><th>What</th><th>Opened</th><th>Cleared</th><th>Emailed</th></tr></thead><tbody>
+      {% for i in incidents %}
+      <tr><td><span class="pill {{ i.severity }}">{{ "Danger" if i.severity == "crit" else "Caution" }}</span> {{ i.message }}</td>
+        <td class="mono">{{ i.opened_at.strftime("%b %d %H:%M") }} UTC</td>
+        <td class="mono">{% if i.closed_at %}{{ i.closed_at.strftime("%b %d %H:%M") }}{% else %}<span class="pill crit">open</span>{% endif %}</td>
+        <td class="mono">{{ "yes" if i.emailed else "" }}</td></tr>
+      {% endfor %}
+    </tbody></table>
+    {% else %}<p class="muted">No incidents. A quiet two weeks on the network.</p>{% endif %}
+  </div>
+
+  <div class="kicker" style="--k: #0b7b7e">Health</div>
+  <div class="card scroll">
+    <table><thead><tr><th>Source</th><th>Status</th></tr></thead><tbody>
+      {% for src in sources %}<tr><td>{{ src.label }}</td><td class="mono">{{ src.cadence }}</td></tr>{% endfor %}
+      <tr><td>Running version</td><td class="mono">{{ deploy.commit or "?" }}{% if deploy.message %} · {{ deploy.message[:60] }}{% endif %}</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="kicker" style="--k: #1f5fbf">Accounts</div>
+  <div class="card scroll">
+    <table><thead><tr><th>Account</th><th>Role</th><th>Google</th><th>Signed in</th><th></th></tr></thead><tbody>
+      {% for u in users %}
+      <tr><td><b>{{ u.name }}</b></td><td>{{ "Admin" if u.admin else "Member" }}</td><td class="mono">{{ u.google or "—" }}</td>
+        <td class="mono">{{ u.sessions }} session{{ "" if u.sessions == 1 else "s" }}</td>
+        <td>{% if u.sessions %}<form method="post" action="/settings"><input type="hidden" name="action" value="signout_user"><input type="hidden" name="user_id" value="{{ u.id }}"><button class="btn" type="submit">Sign out everywhere</button></form>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody></table>
+    <p class="muted" style="margin:12px 0 14px">Add accounts, admins and Google links on the server: <span class="mono">docker exec homelab-portal-1 python -m app.manage</span></p>
+  </div>
+</main>
+</body>
+</html>

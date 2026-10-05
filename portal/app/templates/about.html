@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en" data-theme="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About · HAHBAH</title>
+<link rel="icon" href="/static/site/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/site/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/site/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>/* same Day / Midnight choice as the dashboard */ try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight") document.documentElement.dataset.theme = "midnight"; } catch (e) {}</script>
+<style>
+:root, [data-theme="day"] {
+  --bg: #efece3; --panel: #ffffff; --panel-2: #f7f5ef; --border: #dcd7c9; --ink: #1b1d22; --muted: #646871;
+  --bg-veil: rgba(239, 236, 227, .88); --shadow: 0 1px 2px rgba(20,20,30,.06), 0 4px 16px rgba(20,20,30,.06);
+  --l-red: #d8322e; --l-green: #16854a; --l-orange: #e27b0c; --l-blue: #1f5fbf; --l-purple: #7e3f98; --l-teal: #0b7b7e; --l-silver: #7a838c; --l-gold: #a88625;
+}
+[data-theme="midnight"] {
+  --bg: #070b16; --panel: #0f1528; --panel-2: #131a31; --border: #222c4a; --ink: #e9edf6; --muted: #8e97ad;
+  --bg-veil: rgba(7, 11, 22, .9); --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.35);
+  --l-red: #ff5a52; --l-green: #2fc973; --l-orange: #ffa133; --l-blue: #4f90ff; --l-purple: #bb74e3; --l-teal: #2cc6c8; --l-silver: #a9b3bf; --l-gold: #e7c55a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 "Overpass", system-ui, sans-serif; }
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; filter: saturate(.7);
+  background: linear-gradient(var(--bg-veil), var(--bg-veil)), url("/static/site/station-1920.jpg") center 40% / cover no-repeat;
+}
+@media (max-width: 1100px) { body::before { background: linear-gradient(var(--bg-veil), var(--bg-veil)), url("/static/site/station-1100.jpg") center 40% / cover no-repeat; } }
+a { color: inherit; }
+.mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px 8px; }
+.brand { --brand-ink: #f1ece0; display: flex; align-items: center; gap: 10px; background: #4e6e58; color: var(--brand-ink); padding: 7px 14px 12px 8px; border-radius: 6px; border: 3px solid #2a2a2a; box-shadow: inset 0 -5px 0 #f1ece0; font: 700 22px/1 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: -.01em; }
+.brand svg { width: 30px; height: 30px; flex: none; }
+.brand a { color: inherit; text-decoration: none; padding-top: 4px; }
+.spacer { flex: 1; }
+.user { font-size: 14px; color: var(--muted); display: flex; gap: 10px; align-items: center; margin: 0; }
+.linklike { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
+
+main { max-width: 1080px; margin: 0 auto; padding: 8px 20px 64px; }
+.kicker { font: 700 13px/1 "JetBrains Mono", monospace; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 12px; }
+.kicker::before { content: ""; width: 34px; height: 6px; border-radius: 3px; background: var(--k, var(--l-green)); }
+h1 { font: 900 clamp(38px, 6vw, 64px)/1.02 "Overpass", sans-serif; letter-spacing: -.02em; margin: 14px 0 10px; }
+h2 { font: 800 28px/1.15 "Overpass", sans-serif; margin: 0 0 14px; letter-spacing: -.01em; }
+.lede { font-size: 19px; color: var(--muted); max-width: 720px; margin: 0 0 28px; }
+section { margin-top: 56px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+
+/* the showreel, framed like the station sign's dark enclosure */
+.screen { background: #2a2a2a; border-radius: 12px; padding: 8px; box-shadow: 0 20px 50px rgba(0,0,0,.28); }
+.screen video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; background: #0a0c10; }
+.screen-cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-top: 12px; font-size: 14px; color: var(--muted); }
+.noreel { aspect-ratio: 16 / 9; display: grid; place-items: center; color: #c9c3b5; font: 600 15px/1.4 "JetBrains Mono", monospace; text-align: center; padding: 20px; }
+
+/* how it works: a short line with stations */
+.route { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 26px 22px 22px; }
+.route::before { content: ""; position: absolute; left: 50px; right: 50px; top: 46px; height: 10px; border-radius: 5px; background: var(--l-green); }
+.stop { position: relative; }
+.stop .dot { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); border: 6px solid var(--ink); margin: 0 0 14px 8px; position: relative; z-index: 1; }
+.stop b { display: block; font-size: 19px; font-weight: 800; }
+.stop span { display: block; font-size: 14.5px; color: var(--muted); margin-top: 4px; }
+.branches { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.branch { padding: 16px 18px 16px 22px; border-left: 8px solid var(--c); }
+.branch b { font-size: 17px; }
+.branch span { display: block; font-size: 14.5px; color: var(--muted); margin-top: 3px; }
+
+/* the lines */
+.lines { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.line { display: flex; gap: 14px; align-items: center; padding: 14px 16px; }
+.roundel { width: 46px; height: 46px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; font: 800 15px/1 "Overpass", sans-serif; background: var(--c); box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--c); }
+.line b { display: block; font-size: 16.5px; }
+.line span { display: block; font-size: 14px; color: var(--muted); }
+
+/* live sources */
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; font: 700 12px/1 "JetBrains Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 14px 18px 10px; }
+td { padding: 12px 18px; border-top: 1px solid var(--border); vertical-align: top; }
+td.when { font-family: "JetBrains Mono", monospace; font-size: 13.5px; color: var(--muted); white-space: nowrap; }
+.livedot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--l-green); margin-right: 8px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--l-green) 25%, transparent); }
+
+/* timeline */
+.timeline { list-style: none; margin: 0; padding: 0 0 0 4px; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 13px; top: 8px; bottom: 8px; width: 6px; border-radius: 3px; background: var(--l-silver); }
+.timeline li { position: relative; padding: 0 0 20px 44px; }
+.timeline li::before { content: ""; position: absolute; left: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--panel); border: 5px solid var(--c, var(--ink)); }
+.timeline time { font: 700 13px/1 "JetBrains Mono", monospace; color: var(--muted); letter-spacing: .06em; }
+.timeline b { display: block; font-size: 17px; margin-top: 3px; }
+.timeline span { display: block; font-size: 14.5px; color: var(--muted); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 7px 13px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); font-size: 14px; font-weight: 700; }
+footer { margin-top: 64px; padding-top: 18px; border-top: 1px dashed var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 760px) {
+  .route { grid-template-columns: 1fr; padding-left: 26px; }
+  .route::before { left: 44px; right: auto; top: 30px; bottom: 30px; width: 10px; height: auto; }
+  .stop { display: grid; grid-template-columns: 56px 1fr; align-items: start; }
+  .stop .dot { margin: 0; }
+  .branches { grid-template-columns: 1fr; }
+  .brand { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="#F1ECE0" stroke="#1E1E1E" stroke-width="10"/><path fill="#1E1E1E" d="M26 23h14v21h20V23h14v54H60V56H40v21H26z"/></svg><a href="/">HAHBAH</a></div>
+  <div class="spacer"></div>
+  <form class="user" method="post" action="/logout"><a class="linklike" href="/">← Dashboard</a> · {% if is_admin %}<a class="linklike" href="/settings">Settings</a> · {% endif %}{{ user.username }} · <button class="linklike" type="submit">Sign out</button></form>
+</header>
+
+<main>
+  <div class="kicker">About this system</div>
+  <h1>HAHBAH: the homelab, as a transit system</h1>
+  <p class="lede">Every machine, app, drive and network link in the house, drawn as a subway map you can read at a glance, and checked live, all the time.</p>
+
+  {% if video %}
+  <div class="screen">
+    <video controls playsinline preload="metadata" src="/media/{{ reel }}?v={{ v }}"{% if poster %} poster="/media/{{ reel_poster }}?v={{ v }}"{% endif %} aria-label="HAHBAH showreel"></video>
+  </div>
+  {% else %}
+  <div class="screen"><div class="noreel">The showreel isn't on this server yet.</div></div>
+  {% endif %}
+  <div class="screen-cap"><span>The 42-second showreel, with sound (turn it up for the station announcements).</span><span class="mono">Remotion + Three.js · numbers are live readings from Oct 1, 2026</span></div>
+
+  <section>
+    <div class="kicker" style="--k: var(--l-orange)">What it is</div>
+    <h2>One front door, one sign-in, one map</h2>
+    <p>HAHBAH (Boston for “harbor”) is the home network’s control room. Every app gets a friendly name like <b>replexon.hahbah.com</b> or <b>plex.hahbah.com</b>, all behind a single sign-in, with Google or a backup password. The dashboard shows the whole homelab as a transit map. Machines are hub stations, apps are stops, and every kind of connection is a colored line. When something breaks, its line goes into “service alert” the way a real subway would. The names only work inside the house, so nothing is exposed to the internet.</p>
+  </section>
+
+  <section>
+    <div class="kicker" style="--k: var(--l-green)">How it works</div>
+    <h2>The route a request takes</h2>
+    <div class="card route" aria-label="From the domain name to the apps">
+      <div class="stop"><div class="dot"></div><div><b>hahbah.com</b><span>Names point at the mini PC’s address on the home network (Porkbun DNS).</span></div></div>
+      <div class="stop"><div class="dot"></div><div><b>Caddy</b><span>The front door: automatic HTTPS for every name, and a sign-in check before any app.</span></div></div>
+      <div class="stop"><div class="dot"></div><div><b>Portal</b><span>Sign-in, this dashboard, and the health and certificate checks every 30 seconds.</span></div></div>
+      <div class="stop"><div class="dot"></div><div><b>The apps</b><span>Plex, RePlexOn, Sample Service, Tautulli: one sign-in covers them all.</span></div></div>
+    </div>
+    <div class="branches">
+      <div class="card branch" style="--c: var(--l-purple)"><b>Collector</b><span>A separate container for checks that need secrets: NAS stats over a locked-down SSH key, the domain and DNS records, backup history. The web-facing portal never holds a key.</span></div>
+      <div class="card branch" style="--c: var(--l-orange)"><b>Tautulli</b><span>Watches Plex and keeps the play history behind the Plex card and the drive-in movie screen in the 3D view.</span></div>
+    </div>
+  </section>
+
+  {% if lines %}
+  <section>
+    <div class="kicker" style="--k: var(--l-blue)">The lines</div>
+    <h2>What each color carries</h2>
+    <div class="lines">
+      {% for l in lines %}
+      <div class="card line" style="--c: var(--l-{{ l.id }}, var(--l-silver))">
+        <div class="roundel">{{ l.name.split()[0][:1] }}{{ l.name.split()[1][:1] if l.name.split()|length > 1 else "" }}</div>
+        <div><b>{{ l.name }}</b><span>{{ l.what }}</span></div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if sources %}
+  <section>
+    <div class="kicker" style="--k: var(--l-teal)">Live data</div>
+    <h2>Where the numbers come from, right now</h2>
+    <div class="card" style="overflow-x: auto">
+      <table>
+        <thead><tr><th>Source</th><th>How often</th></tr></thead>
+        <tbody>
+          {% for s in sources %}
+          <tr><td><span class="livedot" aria-hidden="true"></span>{{ s.label }}</td><td class="when">{{ s.cadence }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section>
+    <div class="kicker" style="--k: var(--l-silver)">Timeline</div>
+    <h2>How it got built</h2>
+    <ol class="timeline">
+      <li style="--c: var(--l-silver)"><time>SEP 29, 2026</time><b>The idea</b><span>One portal and one sign-in in front of every app, with a transit-map dashboard.</span></li>
+      <li style="--c: var(--l-gold)"><time>SEP 30</time><b>Mockup, map, 3D Boston, NOC</b><span>The design approved; Docker, the private repo and deploys that pull every 5 minutes; hahbah.com and HTTPS.</span></li>
+      <li style="--c: var(--l-green)"><time>SEP 30</time><b>Portal live</b><span>Password sign-in and the live dashboard at home.hahbah.com.</span></li>
+      <li style="--c: var(--l-red)"><time>OCT 1</time><b>Every app behind one sign-in</b><span>All the app names, single sign-on into the apps, then Plex stats, the drive-in, Google sign-in, and the firewall.</span></li>
+      <li style="--c: var(--l-blue)"><time>OCT 1</time><b>Everything live</b><span>The NAS, certificate, domain, DNS, app health, mounts, drives, speed test and backups, all checked continuously. The showreel.</span></li>
+      <li style="--c: var(--l-purple)"><time>NEXT</time><b>Absorb LegacyMonitor, then move into Docker</b><span>Alerts by email, apps containerized, and new hardware.</span></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="kicker" style="--k: var(--l-gold)">Built with</div>
+    <div class="chips">
+      <span class="chip">FastAPI</span><span class="chip">Caddy</span><span class="chip">Docker Compose</span><span class="chip">SQLite</span>
+      <span class="chip">Three.js</span><span class="chip">Let’s Encrypt</span><span class="chip">Porkbun</span><span class="chip">Authlib (Google)</span>
+      <span class="chip">Tautulli</span><span class="chip">Ubuntu 26.04</span><span class="chip">Synology DSM</span><span class="chip">Remotion</span>
+    </div>
+  </section>
+
+  <footer><span>home.hahbah.com · on the home network only</span><span class="mono">ALL ABOARD</span></footer>
+</main>
+</body>
+</html>

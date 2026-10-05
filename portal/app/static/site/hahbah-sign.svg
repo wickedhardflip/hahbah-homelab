@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" role="img" aria-label="HAHBAH — All Aboard">
+  <rect width="600" height="240" rx="6" fill="#2A2A2A"/>
+  <rect x="8" y="8" width="584" height="156" fill="#4E6E58"/>
+  <rect x="8" y="164" width="584" height="68" fill="#F1ECE0"/>
+  <text x="300" y="126" text-anchor="middle" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="112" letter-spacing="-1" fill="#F1ECE0">HAHBAH</text>
+  <text x="300" y="210" text-anchor="middle" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="34" letter-spacing="1" fill="#1E1E1E">ALL ABOARD</text>
+</svg>

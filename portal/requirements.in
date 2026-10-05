@@ -1,0 +1,15 @@
+# Direct dependencies (exact pins). The Docker image installs requirements.txt, compiled from this with hashes:
+#   uv pip compile requirements.in --generate-hashes --python-platform x86_64-manylinux_2_28 --python-version 3.13 --no-header -o requirements.txt
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+jinja2==3.1.5
+python-multipart==0.0.20
+sqlalchemy==2.0.36
+argon2-cffi==23.1.0
+pyyaml==6.0.2
+tzdata==2026.4
+authlib==1.6.12
+itsdangerous==2.2.0
+httpx==0.28.1
+cryptography==50.0.2
+speedtest-cli==2.1.3

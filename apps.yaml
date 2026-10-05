@@ -1,0 +1,12 @@
+# The one list of homelab apps. Today the portal uses it for the station "Open" links.
+# Later slices also generate Caddy routes, DNS records, health checks and the nav from it.
+domain: hahbah.com
+edge_host: central            # the machine running Caddy; every app name points here
+hosts:
+  central: {ip: 192.168.4.5}  # mini PC
+apps:
+  - {id: jobs,       name: Example App,   subdomain: jobs,       host: central, port: 8080,  health: /login,    lan_url: "http://192.168.4.5:8080", sso: true, admin: true}
+  - {id: social,     name: Sample Service, subdomain: social,     host: central, port: 4434,  health: /,         lan_url: "http://192.168.4.5:4434", sso: true, admin: true}
+  - {id: replexon,   name: RePlexOn,      subdomain: replexon,   host: central, port: 9847,  health: /login,    lan_url: "http://192.168.4.5:9847", sso: true, admin: true}
+  - {id: plex,       name: Plex,          subdomain: plex,       host: central, port: 32400, health: /identity, lan_url: "http://192.168.4.5:32400/web"}
+  - {id: tautulli,   name: Tautulli,      subdomain: tautulli,   host: central, port: 8181,  health: /status,   lan_url: "", upstream: "tautulli:8181", admin: true}

@@ -1,0 +1,143 @@
+************ Disk Info ***************
+>> Disk name: /dev/sda
+>> Disk model: WD40PURX-64NZ6Y0
+>> Total capacity: 3726.02 GB
+>> Tempeture: -1.00 C
+**************************************
+===SMART===
+Name: Raw_Read_Error_Rate
+Id: 1
+Current: 200
+Worst: 200
+Threshold: 051
+Raw: 0
+Status: OK
+---------------------
+Name: Spin_Up_Time
+Id: 3
+Current: 161
+Worst: 160
+Threshold: 021
+Raw: 6950
+Status: OK
+---------------------
+Name: Start_Stop_Count
+Id: 4
+Current: 100
+Worst: 100
+Threshold: 000
+Raw: 681
+Status: OK
+---------------------
+Name: Reallocated_Sector_Ct
+Id: 5
+Current: 200
+Worst: 200
+Threshold: 140
+Raw: 0
+Status: OK
+---------------------
+Name: Seek_Error_Rate
+Id: 7
+Current: 200
+Worst: 200
+Threshold: 000
+Raw: 0
+Status: OK
+---------------------
+Name: Power_On_Hours
+Id: 9
+Current: 072
+Worst: 072
+Threshold: 000
+Raw: 20634
+Status: OK
+---------------------
+Name: Spin_Retry_Count
+Id: 10
+Current: 100
+Worst: 100
+Threshold: 000
+Raw: 0
+Status: OK
+---------------------
+Name: Calibration_Retry_Count
+Id: 11
+Current: 100
+Worst: 100
+Threshold: 000
+Raw: 0
+Status: OK
+---------------------
+Name: Power_Cycle_Count
+Id: 12
+Current: 100
+Worst: 100
+Threshold: 000
+Raw: 641
+Status: OK
+---------------------
+Name: Power-Off_Retract_Count
+Id: 192
+Current: 200
+Worst: 200
+Threshold: 000
+Raw: 10
+Status: OK
+---------------------
+Name: Load_Cycle_Count
+Id: 193
+Current: 200
+Worst: 200
+Threshold: 000
+Raw: 673
+Status: OK
+---------------------
+Name: Temperature_Celsius
+Id: 194
+Current: 122
+Worst: 115
+Threshold: 000
+Raw: 28
+Status: OK
+---------------------
+Name: Reallocated_Event_Count
+Id: 196
+Current: 200
+Worst: 200
+Threshold: 000
+Raw: 0
+Status: OK
+---------------------
+Name: Current_Pending_Sector
+Id: 197
+Current: 200
+Worst: 200
+Threshold: 000
+Raw: 0
+Status: OK
+---------------------
+Name: Offline_Uncorrectable
+Id: 198
+Current: 100
+Worst: 253
+Threshold: 000
+Raw: 0
+Status: OK
+---------------------
+Name: UDMA_CRC_Error_Count
+Id: 199
+Current: 200
+Worst: 200
+Threshold: 000
+Raw: 0
+Status: OK
+---------------------
+Name: Multi_Zone_Error_Rate
+Id: 200
+Current: 200
+Worst: 200
+Threshold: 000
+Raw: 0
+Status: OK
+---------------------

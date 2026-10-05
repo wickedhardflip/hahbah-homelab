@@ -1,0 +1,122 @@
+# Stack for the "central" host (mini PC, 192.168.4.5).
+# Deployed automatically by deploy/pull.sh when main changes.
+# Secrets: /srv/homelab/secrets/*.env (never in git). Data: /srv/homelab/<app>/data.
+services:
+  caddy:
+    build: ./caddy
+    image: homelab-caddy:local
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file:
+      - /srv/homelab/secrets/porkbun.env
+      - /srv/homelab/secrets/proxy.env   # HOMELAB_PROXY_SECRET for single sign-on apps
+    volumes:
+      - ./caddy:/etc/caddy:ro            # folder, not file: git replaces files, so a file mount would go stale
+      - /srv/homelab/caddy/data:/data
+      - /srv/homelab/caddy/config:/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # reach the systemd apps on the host (Phase 2)
+    networks:
+      default:
+        ipv4_address: 172.18.0.10   # fixed, so the portal can trust X-Forwarded-* from this address only
+  portal:
+    build: ../../portal
+    image: homelab-portal:local
+    restart: unless-stopped
+    env_file:
+      - path: /srv/homelab/secrets/tautulli.env   # TAUTULLI_API_KEY, written by deploy/tautulli-key.sh
+        required: false                           # absent until Tautulli is set up
+      - path: /srv/homelab/secrets/google.env     # GOOGLE_CLIENT_ID/SECRET + PORTAL_STATE_SECRET, written by deploy/google-secrets.sh
+        required: false                           # absent until Google sign-in is set up
+      - path: /srv/homelab/secrets/alerts.env     # ALERT_EMAIL_TO (where alerts + the morning report go); not a secret, kept out of git
+        required: false
+    environment:
+      FORWARDED_ALLOW_IPS: "172.18.0.10"          # uvicorn trusts X-Forwarded-For only from Caddy (see the network at the bottom)
+      PORTAL_WEATHER_DIR: "/weather"
+      PORTAL_SPORTS_FILE: "/weather/sports.json"   # team picks the portal writes (shares the weather folder: same owner, already mounted)
+      PORTAL_MAIL_DIR: "/mail"                    # recipients.json: addresses added in Settings (the collector reads it)
+      PORTAL_OUTBOX: "/outbox"                    # the portal only writes emails here; the collector sends them
+      TAUTULLI_URL: "http://tautulli:8181"
+      PORTAL_COOKIE_DOMAIN: ".hahbah.com"
+      PORTAL_DISKS: "/=/app/data,/boot/efi=/host/boot-efi"
+      PORTAL_NIC: "enp2s0"
+      PORTAL_APPS_FILE: "/app/repo/apps.yaml"
+      OLLAMA_URL: "http://192.168.4.9:11434"   # the Windows PC; "unknown" (not danger) when it's asleep
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # health checks for the systemd apps on the host
+    volumes:
+      - /srv/homelab/portal/data:/app/data
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /boot/efi:/host/boot-efi:ro
+      - /srv/homelab/deploy.log:/host/deploy.log:ro
+      - ../..:/app/repo:ro               # the repo (no secrets in it), so apps.yaml edits show up live
+      - /srv/homelab/collector:/collector:ro   # the collector's JSON files
+      - /srv/homelab/portal/media:/app/media:ro   # About page video + poster (kept out of git; replace in place)
+      - /srv/homelab/outbox:/outbox               # email outbox (written here, sent by the collector)
+      - /srv/homelab/weather:/weather             # weather location file (lat/lon the portal writes; the collector reads it)
+      - /srv/homelab/mail:/mail                   # web-added email addresses (rw here, ro in the collector)
+  # Slow or secret-holding checks, kept out of the web-facing portal: the Porkbun keys and the NAS key live only here.
+  # Same image as the portal, no ports. Writes one JSON file per job to /srv/homelab/collector.
+  collector:
+    image: homelab-portal:local
+    depends_on: [portal]                      # the portal service builds the shared image
+    restart: unless-stopped
+    command: ["python", "-m", "app.sidecar"]
+    healthcheck:
+      disable: true                           # the image's check probes the portal's web port, which this doesn't run
+    env_file:
+      - /srv/homelab/secrets/porkbun.env      # PORKBUN_API_KEY / PORKBUN_API_SECRET_KEY: read-only calls only
+      - path: /srv/homelab/secrets/alerts.env # ALERT_EMAIL_TO: the only address the mailer will send to
+        required: false
+    environment:
+      COLLECTOR_DIR: "/out"
+      PORTAL_APPS_FILE: "/app/repo/apps.yaml"
+      PORTAL_TZ: "America/New_York"
+      NAS_HOST: "192.168.4.4"
+      NAS_USER: "admin"
+      NAS_KEY: "/secrets/nas_collector"       # the NAS only lets this key run one read-only stats command
+      NAS_KNOWN_HOSTS: "/secrets/nas_known_hosts"
+      EERO_DNS: "192.168.4.1"
+      REPLEXON_DB: "/replexon/replexon.db"
+      MOUNTS: "/mnt/video,/mnt/photo,/mnt/music,/mnt/audiobooks"
+      MOUNTS_ROOT: "/host"                    # host /mnt is mounted at /host/mnt below
+      PING_TARGETS: "router=192.168.4.1,nas=192.168.4.4,central=192.168.4.5"
+      OUTBOX: "/outbox"
+      SPORTS: "1"                             # Red Sox (MLB Stats API) + Celtics (ESPN) scores for the 3D map; no keys
+      WEATHER_LOCATION: "/weather/location.json"   # read-only; validated as two in-range floats
+      SPORTS_PICKS: "/weather/sports.json"   # read-only; a missing or odd file means Red Sox / Celtics / Hornets
+      RECIPIENTS_FILE: "/mail/recipients.json"    # web-added addresses; re-validated on every read, max 5
+    volumes:
+      - /srv/homelab/collector:/out
+      - ../..:/app/repo:ro
+      - /srv/homelab/secrets/nas_collector:/secrets/nas_collector:ro
+      - /srv/homelab/secrets/nas_known_hosts:/secrets/nas_known_hosts:ro
+      - /opt/replexon/data:/replexon:ro
+      - /mnt:/host/mnt:ro,rslave                  # the NFS mounts, read-only; rslave so mounts made later show up too
+      - /srv/homelab/outbox:/outbox
+      - /srv/homelab/weather:/weather:ro
+      - /srv/homelab/mail:/mail:ro
+      - /home/youruser/.msmtprc:/home/app/.msmtprc:ro   # the Gmail app-password config LegacyMonitor used (0600, uid 1000)
+  tautulli:
+    image: ghcr.io/tautulli/tautulli:v2.18.2    # pinned; bump deliberately
+    restart: unless-stopped
+    environment:
+      TZ: "America/New_York"
+      PUID: "1000"
+      PGID: "1000"
+    volumes:
+      - /srv/homelab/tautulli:/config         # settings + history database
+    # no ports: only Caddy and the portal reach it, on the stack's network
+
+# Pinned to the range Docker chose on its own (172.18.0.0/16, a virtual network inside this host; nothing on the LAN).
+# The host firewall and the apps' TRUSTED_PROXY_NETWORKS use the wider 172.16.0.0/12, which still covers it.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+          gateway: 172.18.0.1

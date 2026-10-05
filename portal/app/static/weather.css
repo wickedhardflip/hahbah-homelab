@@ -1,0 +1,38 @@
+/* Weather chip (header) + card. Colors come from the dashboard's theme variables, so day and midnight both work. */
+.wx-chip { display: inline-flex; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--border); border-radius: 999px; box-shadow: var(--shadow);
+  padding: 4px 13px 4px 8px; font-size: 13px; font-weight: 700; color: var(--ink); cursor: pointer; }
+.wx-chip[hidden] { display: none; }
+.wx-chip:hover, .wx-chip[aria-expanded="true"] { border-color: var(--info); }
+.wx-chip b { font: 600 14px "JetBrains Mono", monospace; }
+.wx-chip span { color: var(--muted); font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wx-ico { width: 24px; height: 24px; flex: none; }
+.wx-ico * { stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.wx-ico .sun { fill: #e8a317; stroke: #b9780c; } .wx-ico .rays { stroke: #e8a317; }
+.wx-ico .moon { fill: #c9cde0; stroke: var(--muted); }
+.wx-ico .cloud { fill: var(--panel-2); } .wx-ico .rain { stroke: var(--info); } .wx-ico .flake { stroke: var(--info); } .wx-ico .bolt { fill: #e8a317; stroke: #b9780c; }
+/* The chip lives top right of the map (Map and 3D) or above the NOC stats; the card drops down from it. */
+.wx-slot { position: absolute; top: 10px; right: 12px; z-index: 6; }
+.wx-noc-slot { display: none; position: relative; top: auto; right: auto; margin-left: auto; z-index: 6; }  /* NOC: same row as the view buttons, far right */
+body[data-view="noc"] .wx-noc-slot { display: inline-block; }
+.wx-card { position: absolute; top: 40px; right: 0; width: min(430px, calc(100vw - 24px)); max-height: 440px; overflow: auto; }
+.wx-noc-slot .wx-card { top: 36px; max-height: calc(100vh - 200px); }
+.wx-card[hidden] { display: none; }
+.wx-card .close { position: absolute; right: 10px; top: 8px; border: 0; background: none; font-size: 20px; cursor: pointer; color: var(--muted); }
+.wx-now { display: flex; align-items: center; gap: 12px; margin: 2px 0 4px; }
+.wx-now .wx-ico { width: 44px; height: 44px; }
+.wx-now b { font: 600 34px/1 "JetBrains Mono", monospace; }
+.wx-now small { display: block; color: var(--muted); font-size: 12.5px; }
+.wx-hours { display: flex; gap: 2px; overflow-x: auto; padding: 4px 0 8px; }
+.wx-hour { flex: none; width: 48px; text-align: center; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.wx-hour span { color: var(--muted); font-weight: 700; } .wx-hour b { font: 600 13px "JetBrains Mono", monospace; } .wx-hour i { font-style: normal; color: var(--info); font-size: 11px; min-height: 13px; }
+.wx-days { margin-top: 2px; }
+.wx-day { display: grid; grid-template-columns: 52px 28px 1fr auto; gap: 8px; align-items: center; padding: 5px 0; border-top: 1px solid var(--border); font-size: 13.5px; }
+.wx-day .wx-ico { width: 22px; height: 22px; } .wx-day i { font-style: normal; color: var(--info); font-size: 12px; }
+.wx-day .t { font: 600 13px "JetBrains Mono", monospace; text-align: right; } .wx-day .t span { color: var(--muted); }
+.wx-foot { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+
+/* The chip now lives inside .mapwrap, whose "svg { width/height: 100% }" would stretch the icons: pin their sizes. */
+.mapwrap svg.wx-ico { width: 24px; height: 24px; cursor: inherit; }
+.mapwrap .wx-now svg.wx-ico { width: 44px; height: 44px; }
+.mapwrap .wx-day svg.wx-ico { width: 22px; height: 22px; }
+.mapwrap[data-view="3d"] svg.wx-ico { visibility: visible; }   /* 3D hides the map svg; the weather icons must stay */

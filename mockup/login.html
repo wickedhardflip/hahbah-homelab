@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-theme="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homelab Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="day"] { --bg: #efece3; --panel: #fff; --border: #dcd7c9; --ink: #1b1d22; --muted: #686c75; --focus: #1f5fbf; }
+[data-theme="midnight"] { --bg: #070b16; --panel: #0f1528; --border: #222c4a; --ink: #e9edf6; --muted: #8e97ad; --focus: #4f90ff; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--ink); font: 15px/1.45 "Overpass", system-ui, sans-serif; }
+.card { width: min(400px, 100%); background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 6px 30px rgba(0,0,0,.08); }
+.rail { display: flex; height: 8px; border-radius: 8px; overflow: hidden; margin-bottom: 22px; }
+.rail i { flex: 1; }
+h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+.sub { margin: 4px 0 22px; color: var(--muted); }
+.google { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 11px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); font: 700 15px "Overpass", sans-serif; cursor: pointer; }
+.google:hover { border-color: var(--muted); }
+.or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; margin: 20px 0 14px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+label { display: block; font-size: 13px; font-weight: 700; margin: 10px 0 4px; }
+input { width: 100%; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border); background: transparent; color: var(--ink); font: inherit; }
+input:focus, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.primary { width: 100%; margin-top: 16px; padding: 11px; border-radius: 10px; border: 0; background: var(--ink); color: var(--panel); font: 800 15px "Overpass", sans-serif; cursor: pointer; }
+.note { margin: 18px 0 0; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="rail" aria-hidden="true">
+    <i style="background:#d8322e"></i><i style="background:#e27b0c"></i><i style="background:#16854a"></i><i style="background:#1f5fbf"></i><i style="background:#7e3f98"></i><i style="background:#0b7b7e"></i>
+  </div>
+  <h1>Homelab Transit</h1>
+  <p class="sub">One sign-in for every app on the home network.</p>
+  <button class="google" type="button" onclick="location.href='index.html'">
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
+    Sign in with Google
+  </button>
+  <div class="or">or use your backup password</div>
+  <form onsubmit="event.preventDefault(); location.href='index.html';">
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="you@example.com">
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <button class="primary" type="submit">Sign in</button>
+  </form>
+  <p class="note">Only approved accounts can get in. Mockup only: both buttons go to the map.</p>
+</main>
+<script>
+  try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+</body>
+</html>

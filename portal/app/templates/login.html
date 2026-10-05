@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HAHBAH Sign In</title>
+<link rel="icon" href="/static/site/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/site/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/site/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #eee5d0; --paper-edge: #d9ccb0; --ink: #3f3a33; --ink-soft: #6d6558; --rule: #b9ad95;
+  --field: rgba(255, 252, 244, .45); --field-border: #9c917d; --focus: #56718f;
+  --stamp: #a8322a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px;
+  background: #1d1b17; color: var(--ink); font: 15px/1.45 "Overpass", system-ui, sans-serif;
+}
+
+/* ---------- the platform behind the card ---------- */
+.scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #1d1b17 url("/static/login/platform-1920.jpg") center 45% / cover no-repeat; }
+.scene::after {  /* darken the edges so the card reads first */
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 75% at 50% 50%, rgba(20, 16, 10, .05) 35%, rgba(20, 16, 10, .55) 100%);
+}
+@media (max-width: 1100px) { .scene { background-image: url("/static/login/platform-1100.jpg"); } }
+.scene video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 45%; }
+@media (prefers-reduced-motion: reduce) { .scene video { display: none; } }
+
+/* ---------- the ticket-paper card ---------- */
+.card {
+  position: relative; z-index: 1; width: min(440px, 100%); padding: 30px 32px 26px; border-radius: 18px; overflow: hidden;
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(ellipse 90% 80% at 50% 45%, transparent 55%, rgba(150, 115, 60, .22) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .33 0 0 0 0 .2 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3), inset 0 0 0 1px rgba(255, 255, 255, .35);
+}
+.watermark { position: absolute; inset: 60px -20px -10px; width: calc(100% + 40px); height: auto; opacity: .13; pointer-events: none; }
+.card > *:not(.watermark) { position: relative; }
+
+h1 { margin: 0 0 22px; font-size: 30px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+.logo { display: block; width: 100%; height: auto; }  /* same width as the Google button and fields */
+.sub { margin: 4px 0 22px; color: var(--ink-soft); font-size: 16px; }
+
+.google {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px;
+  border-radius: 12px; border: 1px solid var(--paper-edge); background: #f5efe2; color: var(--ink-soft);
+  font: 700 16px "Overpass", sans-serif; box-shadow: 0 2px 5px rgba(0, 0, 0, .14);
+}
+a.google { text-decoration: none; cursor: pointer; }
+.google svg { filter: grayscale(.8) sepia(.3); opacity: .8; }
+.or { display: flex; align-items: center; gap: 10px; color: var(--ink-soft); font-size: 14px; margin: 20px 0 12px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+
+label { display: block; font-size: 14px; font-weight: 800; margin: 12px 0 5px; color: var(--ink); }
+input {
+  width: 100%; padding: 12px 13px; border-radius: 10px; border: 1.5px solid var(--field-border);
+  background: var(--field); color: var(--ink); font: inherit; box-shadow: inset 0 2px 4px rgba(0, 0, 0, .12);
+}
+input:focus { outline: 2px solid var(--focus); outline-offset: 2px; background: rgba(255, 252, 244, .7); }
+.primary {
+  width: 100%; margin-top: 22px; padding: 13px; border-radius: 11px; border: 0; background: #151412; color: #f3ead8;
+  font: 700 17px "Overpass", sans-serif; letter-spacing: .01em; cursor: pointer; box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
+}
+.primary:hover { background: #26231f; }
+.primary:focus-visible, .google:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* errors look like a rubber stamp on the ticket */
+.error {
+  display: inline-block; margin: 4px 0 6px; padding: 5px 12px; border: 2.5px solid var(--stamp); border-radius: 6px;
+  color: var(--stamp); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  transform: rotate(-2deg); background: rgba(168, 50, 42, .05); mix-blend-mode: multiply;
+}
+.note { margin: 20px 0 0; font-size: 14px; color: var(--ink-soft); }
+
+@media (max-width: 480px) {
+  .card { padding: 24px 20px 20px; }
+  h1 { font-size: 26px; }
+}
+</style>
+</head>
+<body>
+<div class="scene" aria-hidden="true">
+  <video id="platform" autoplay muted loop playsinline preload="auto" poster="/static/login/platform-1920.jpg">
+    <source src="/static/login/platform-loop.mp4" type="video/mp4">
+  </video>
+</div>
+<script>
+  // Still photo instead of video when motion is turned off, or if the video can't play.
+  (function () {
+    var v = document.getElementById("platform");
+    var still = function () { if (v && v.parentNode) v.parentNode.removeChild(v); };
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) { still(); return; }
+    v.addEventListener("error", still, true);
+  })();
+</script>
+<main class="card">
+  <!-- faint transit map pressed into the paper -->
+  <svg class="watermark" viewBox="0 0 400 420" aria-hidden="true" fill="none" stroke="#4a3f2e" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-20 60 C 60 80, 120 40, 200 70 S 330 60, 420 40" stroke-width="16" stroke-opacity=".5"/>
+    <path d="M90 -10 V 120 L 190 220 H 420" stroke-width="7"/>
+    <path d="M190 220 L 110 300 V 440" stroke-width="7"/>
+    <path d="M190 220 V 110 L 270 30" stroke-width="7"/>
+    <path d="M190 220 L 260 290 H 330 L 360 250 V 150" stroke-width="7"/>
+    <path d="M-20 170 H 60 L 120 110" stroke-width="7"/>
+    <path d="M330 290 L 380 340 V 440" stroke-width="7"/>
+    <g fill="#eee5d0" stroke-width="4">
+      <circle cx="190" cy="220" r="12"/><circle cx="90" cy="120" r="9"/><circle cx="330" cy="290" r="9"/>
+      <circle cx="260" cy="220" r="5"/><circle cx="320" cy="220" r="5"/><circle cx="110" cy="360" r="5"/><circle cx="360" cy="190" r="5"/>
+    </g>
+  </svg>
+
+  <h1><img class="logo" src="/static/site/hahbah-sign.svg" alt="HAHBAH: All Aboard" width="600" height="240"></h1>
+  {% if signout %}
+  <p class="sub">Signed in as {{ username }}. Signing out here signs you out of every app.</p>
+  <form method="post" action="/logout">
+    <button class="primary" type="submit" autofocus>Sign out of every app</button>
+  </form>
+  <p class="note"><a href="/">Back to the dashboard</a></p>
+  {% else %}
+  {% if google %}
+  <a class="google" href="/auth/google{% if next %}?next={{ next | urlencode }}{% endif %}">
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
+    Sign in with Google
+  </a>
+  <div class="or">or use your backup password</div>
+  {% endif %}
+  <form method="post" action="/login">
+    <input type="hidden" name="next" value="{{ next }}">
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <label for="username">Username</label>
+    <input id="username" name="username" autocomplete="username" required autofocus value="{{ username or '' }}">
+    <label for="pw">Password</label>
+    <input id="pw" name="password" type="password" autocomplete="current-password" required>
+    <button class="primary" type="submit">Sign in</button>
+  </form>
+  <p class="note">Only approved accounts can get in.</p>
+  {% endif %}
+</main>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# One wildcard certificate covers every app name. App routes live in apps.caddy,
+# generated from apps.yaml. Porkbun keys come from /srv/homelab/secrets/porkbun.env.
+*.hahbah.com {
+	tls {
+		dns porkbun {
+			api_key {env.PORKBUN_API_KEY}
+			api_secret_key {env.PORKBUN_API_SECRET_KEY}
+		}
+		resolvers 1.1.1.1 9.9.9.9
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	@home host home.hahbah.com
+	handle @home {
+		header {
+			X-Frame-Options "DENY"
+			Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+		}
+		# zstd/gzip for text types only (Caddy's default list: HTML, JS, JSON, CSS, SVG); video and images stay as they are
+		encode zstd gzip
+		reverse_proxy portal:8000
+	}
+
+	import apps.caddy
+
+	handle {
+		respond "Nothing lives at this address yet." 404
+	}
+}
