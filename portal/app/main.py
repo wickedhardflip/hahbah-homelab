@@ -386,6 +386,29 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
         return FileResponse(path, media_type=MEDIA_TYPES[name.rsplit(".", 1)[1]],
                             headers={"Cache-Control": "private, max-age=86400"})   # FileResponse handles Range (iPhone video)
 
+    @app.post("/api/speedtest")
+    def api_speedtest(request: Request, user=Depends(admin_user)):
+        """Ask the collector for a speed test now. One at a time: a request newer than the last result is still pending."""
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        if not settings.speed_request:
+            raise HTTPException(status_code=404, detail="Speed tests on demand are not set up.")
+        try:
+            last = datetime.fromisoformat(json.loads((settings.collector_dir / "speed.json").read_text(encoding="utf-8"))
+                                          ["checked_at"].replace("Z", "+00:00")).timestamp()
+        except (OSError, ValueError, KeyError, TypeError):
+            last = 0.0
+        try:
+            if settings.speed_request.stat().st_mtime > last:
+                return {"status": "running"}
+        except OSError:
+            pass
+        try:
+            settings.speed_request.write_text(datetime.now(timezone.utc).isoformat(), encoding="utf-8")
+        except OSError:
+            raise HTTPException(status_code=503, detail="Could not ask for a speed test.")
+        return {"status": "started"}
+
     @app.get("/api/snapshot")
     def api_snapshot(user=Depends(current_user)):
         return snapshot_for(store.current(), user.is_admin, is_discreet())

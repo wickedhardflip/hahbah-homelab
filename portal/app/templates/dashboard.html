@@ -751,6 +751,20 @@ body[data-view="noc"] .noc { display: block; }
 
   // ---------- trend lines + Plex backups ----------
   const SVGNS2 = "http://www.w3.org/2000/svg";
+  function speedButton() {
+    const note = h("div", { class: "foot" });
+    const btn = h("button", { class: "btn", type: "button", text: "Run speed test now" });
+    btn.onclick = async () => {
+      btn.disabled = true; btn.textContent = "Testing…";
+      try {
+        const r = await fetch("/api/speedtest", { method: "POST", credentials: "same-origin" });
+        note.textContent = r.ok ? "Started. It takes about a minute; the numbers above update on their own." : "Could not start a test.";
+        if (!r.ok) { btn.disabled = false; btn.textContent = "Run speed test now"; return; }
+      } catch (e) { note.textContent = "Could not start a test."; btn.disabled = false; btn.textContent = "Run speed test now"; return; }
+      setTimeout(() => { btn.disabled = false; btn.textContent = "Run speed test now"; }, 90000);
+    };
+    return h("div", { class: "sec" }, [btn, note]);
+  }
   function spark(points, stroke, label, unit) {
     const box = h("div", { class: "spark" });
     const vals = (points || []).map((p) => p.v);
@@ -866,7 +880,7 @@ body[data-view="noc"] .noc { display: block; }
       alertBoxes(id).forEach((b) => detail.append(b));
       if (id === "plex" || id === "tautulli") plexCard(id);   // same browser-side data, no extra calls
       if (id === "replexon") backupCard();
-      if (id === "isp") detail.append(spark((S.trends || {}).speed_down, color("red"), "Download speed", " Mbps"));
+      if (id === "isp") { detail.append(spark((S.trends || {}).speed_down, color("red"), "Download speed", " Mbps")); if (window.HOMELAB_ADMIN) detail.append(speedButton()); }
       if (id === "nas") detail.append(spark((S.trends || {}).nas_used_pct, color("blue"), "Volume used", "%"));
       if (id === "caddy" || id === "domain") {
         const E = S.edge;

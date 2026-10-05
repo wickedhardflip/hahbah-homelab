@@ -103,3 +103,23 @@ def test_idle_timeout_is_saved_validated_and_shown(sapp):
     assert "idle-invalid" not in c.post("/settings", data={"action": "save"}, follow_redirects=False).headers["location"]
     with sapp.state.SessionLocal() as db:   # a form without the field leaves it alone
         assert settingsstore.idle_minutes(db) == 90
+
+
+def test_speedtest_button_asks_once_until_answered(settings, tmp_path):
+    coll = tmp_path / "collector"
+    coll.mkdir()
+    req = tmp_path / "speedtest.request"
+    c = client(create_app(replace(settings, speed_request=req, collector_dir=coll), builder=FakeBuilder(SNAP), collect=False))
+    ok = {"origin": "https://home.hahbah.com"}
+    assert c.post("/api/speedtest", headers={"origin": "https://evil.example"}).status_code == 403
+    assert c.post("/api/speedtest", headers=ok).json() == {"status": "started"} and req.exists()
+    assert c.post("/api/speedtest", headers=ok).json() == {"status": "running"}   # still waiting for the collector
+    (coll / "speed.json").write_text('{"checked_at": "2999-01-01T00:00:00Z"}')   # the collector answered
+    assert c.post("/api/speedtest", headers=ok).json() == {"status": "started"}
+
+
+def test_speedtest_is_admin_only_and_off_by_default(settings, tmp_path, sapp=None):
+    off = client(create_app(settings, builder=FakeBuilder(SNAP), collect=False))
+    assert off.post("/api/speedtest", headers={"origin": "https://home.hahbah.com"}).status_code == 404
+    non = client(create_app(replace(settings, data_dir=tmp_path / "d2", speed_request=tmp_path / "r"), builder=FakeBuilder(SNAP), collect=False), admin=False)
+    assert non.post("/api/speedtest", headers={"origin": "https://home.hahbah.com"}).status_code == 403

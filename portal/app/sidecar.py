@@ -26,7 +26,8 @@ class Job:
     unless its last result is younger than `fresh_s` (so a deploy doesn't trigger an extra speed test)."""
 
     def __init__(self, name: str, interval_s: int, fn, daily_at: str | None = None, fresh_s: int | None = None,
-                 timeout_s: float = 300):
+                 timeout_s: float = 300, trigger: Path | None = None):
+        self.trigger = trigger   # a file the portal touches to ask for a run now; newer than the last result = run
         self.name, self.interval_s, self.fn, self.next_at = name, interval_s, fn, 0.0
         self.timeout_s = timeout_s   # past this the job is recorded as failed (Timeout); it never overlaps itself
         self.daily_at, self.fresh_s, self.last_day = daily_at, fresh_s, None
@@ -62,8 +63,23 @@ class Runner:
         tmp.write_text(json.dumps(doc), encoding="utf-8")
         os.replace(tmp, self.out / f"{name}.json")
 
+    def _requested(self, job: Job) -> bool:
+        """True when `job.trigger` is newer than the job's last result (ok or failed), so one click runs once."""
+        try:
+            asked = job.trigger.stat().st_mtime
+        except (OSError, AttributeError):
+            return False
+        try:
+            doc = json.loads((self.out / f"{job.name}.json").read_text(encoding="utf-8"))
+            last = datetime.fromisoformat(doc["checked_at"].replace("Z", "+00:00")).timestamp()
+        except (OSError, ValueError, KeyError, TypeError):
+            last = 0.0
+        return asked > last
+
     def _due(self, job: Job, mono: float) -> bool:
         """True (and the schedule advanced) when the job should run now."""
+        if self._requested(job):   # an on-demand run leaves the daily schedule alone
+            return True
         if job.daily_at:
             if not self._daily_due(job):
                 return False
@@ -179,7 +195,7 @@ def build_jobs(env=os.environ.get) -> list:
             daily_at="04:05", fresh_s=20 * 3600, timeout_s=600))
     if env("SPEEDTEST", "1") == "1":
         jobs.append(Job("speed", 86400, lambda: speed_test(now()), daily_at="04:10", fresh_s=20 * 3600,
-                        timeout_s=900))
+                        timeout_s=900, trigger=Path(env("SPEED_REQUEST")) if env("SPEED_REQUEST") else None))
     if env("OUTBOX"):
         jobs.append(Job("mailer", 30, lambda: send_outbox(Path(env("OUTBOX")), env("ALERT_EMAIL_TO", ""),
                                                     recipients_file=env("RECIPIENTS_FILE"))))

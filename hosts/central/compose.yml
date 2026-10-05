@@ -38,6 +38,7 @@ services:
       PORTAL_WEATHER_DIR: "/weather"
       PORTAL_SPORTS_FILE: "/weather/sports.json"   # team picks the portal writes (shares the weather folder: same owner, already mounted)
       PORTAL_MAIL_DIR: "/mail"                    # recipients.json: addresses added in Settings (the collector reads it)
+      PORTAL_SPEED_REQUEST: "/weather/speedtest.request"   # the Run speed test button touches this; the collector runs a test when it is newer than the last one
       PORTAL_OUTBOX: "/outbox"                    # the portal only writes emails here; the collector sends them
       TAUTULLI_URL: "http://tautulli:8181"
       PORTAL_COOKIE_DOMAIN: ".hahbah.com"
@@ -89,6 +90,7 @@ services:
       SPORTS: "1"                             # Red Sox (MLB Stats API) + Celtics (ESPN) scores for the 3D map; no keys
       WEATHER_LOCATION: "/weather/location.json"   # read-only; validated as two in-range floats
       SPORTS_PICKS: "/weather/sports.json"   # read-only; a missing or odd file means Red Sox / Celtics / Hornets
+      SPEED_REQUEST: "/weather/speedtest.request"   # read-only; newer than speed.json = run a test now
       RECIPIENTS_FILE: "/mail/recipients.json"    # web-added addresses; re-validated on every read, max 5
     volumes:
       - /srv/homelab/collector:/out

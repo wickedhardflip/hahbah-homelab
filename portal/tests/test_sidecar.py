@@ -126,3 +126,21 @@ def test_a_job_never_overlaps_itself_and_a_raising_job_is_isolated(tmp_path):
     finally:
         stop.set()
     assert peak[0] == 1
+
+
+def test_speed_request_runs_once_and_leaves_the_schedule(tmp_path):
+    import os
+    calls, clock = [], [datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc)]
+    req = tmp_path / "req"
+    r = Runner(tmp_path, [Job("speed", 86400, lambda: calls.append(1) or {}, daily_at="04:10", fresh_s=20 * 3600, trigger=req)],
+               now=lambda: clock[0], tz="UTC")
+    r.tick(0)   # no result yet: the start-up run
+    r.tick(1)
+    assert len(calls) == 1
+    req.write_text("x")
+    asked = clock[0].timestamp() + 10
+    os.utime(req, (asked, asked))
+    clock[0] = datetime.fromtimestamp(asked + 10, timezone.utc)
+    r.tick(2)   # the request is newer than the last result: run
+    r.tick(3)   # answered already: not again
+    assert len(calls) == 2
