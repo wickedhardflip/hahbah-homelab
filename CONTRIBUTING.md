@@ -8,6 +8,10 @@ This started as one person's homelab and is shared as a template to learn from a
 - Support another DNS provider for the wildcard certificate (today: Porkbun).
 - Fix docs where a first-time setup tripped you up. That is the most useful kind of report.
 
+## How this repo is maintained
+
+This repo is published from a private working copy: changes are made there and exported here, so commits on this side are snapshots. Pull requests are still welcome. If one is accepted, the change is ported into the private copy by hand and shows up here with the next export, so your PR may be closed with a thank-you instead of merged.
+
 ## Before you open a pull request
 
 ```
