@@ -37,9 +37,10 @@ def _parse_utc(naive: str) -> datetime:
 
 
 def replexon_summary(c: sqlite3.Connection, tz: str, now: datetime) -> dict:
-    """RePlexOn stores local wall-clock times; everything here is converted to UTC."""
+    """RePlexOn 2 stores UTC; `tz` is only for grouping runs into home-time nights."""
     zone = ZoneInfo(tz)
-    utc = lambda t: datetime.fromisoformat(t.split(".")[0]).replace(tzinfo=zone).astimezone(timezone.utc) if t else None
+    utc = lambda t: _parse_utc(t) if t else None
+    home_day = lambda t: _parse_utc(t).astimezone(zone).date().isoformat()
     iso = lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ") if d else None
     ok = c.execute("SELECT COALESCE(finished_at, started_at), duration_seconds, total_size_bytes FROM backup_runs WHERE backup_type = 'daily_mirror' "
                    "AND status = 'success' ORDER BY started_at DESC LIMIT 1").fetchone()
@@ -61,16 +62,18 @@ def replexon_summary(c: sqlite3.Connection, tz: str, now: datetime) -> dict:
         out["last_success"]["files"] = detail[1]
         out["last_success"]["db_safe"] = None if detail[2] is None else bool(detail[2])   # Plex DB copied via sqlite .backup (True) or live rsync
     # distinct nights with a run / with a good run, last 30 days
-    days = c.execute("SELECT COUNT(DISTINCT date(started_at)), COUNT(DISTINCT CASE WHEN status = 'success' THEN date(started_at) END) FROM backup_runs "
-                     "WHERE backup_type = 'daily_mirror' AND started_at >= ?", ((now.astimezone(zone).date() - timedelta(days=30)).isoformat(),)).fetchone()
-    out["rate_30d"] = {"good": days[1], "total": days[0]} if days[0] else None
+    since = (now.astimezone(zone).date() - timedelta(days=31)).isoformat()
+    runs30 = [(s, home_day(t)) for s, t in c.execute("SELECT status, started_at FROM backup_runs WHERE backup_type = 'daily_mirror' AND started_at >= ?", (since,))]
+    cutoff = (now.astimezone(zone).date() - timedelta(days=30)).isoformat()
+    total, good = {d for _, d in runs30 if d >= cutoff}, {d for s, d in runs30 if s == "success" and d >= cutoff}
+    out["rate_30d"] = {"good": len(good), "total": len(total)} if total else None
     # the last 14 nights (home dates): ok / running / failed / missing
     local_now = now.astimezone(zone)
     end = local_now.date() if local_now.hour >= 6 else local_now.date() - timedelta(days=1)
     by_day: dict = {}
     for status, started in c.execute("SELECT status, started_at FROM backup_runs WHERE backup_type = 'daily_mirror' "
                                      "AND started_at >= ?", ((end - timedelta(days=14)).isoformat(),)):
-        d = started[:10]
+        d = home_day(started)
         if status == "success" or by_day.get(d) == "ok":
             by_day[d] = "ok"
         elif status == "running" or by_day.get(d) == "running":

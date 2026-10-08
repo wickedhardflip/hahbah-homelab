@@ -167,14 +167,15 @@
       out.push(h("div", { class: "noc-note", text: `${L.devices.connected} connected · ${L.devices.wired} wired · ${L.devices.known} known · data use is the total over each window, busiest first${L.stale ? " · stale" : ""}` }));
       out.push(tbl(["Device", "Node", "Link", "IP", "24 h", "7 days", "30 days"], rows));
     }
+    const charts = [];   // the two usage charts sit at the bottom of the Network settings card, side by side
     if (Hs && Hs.daily && Hs.daily.length) {
       const dn = Hs.daily.map((d) => d.down + d.up), sum = dn.reduce((a, b) => a + b, 0);
-      out.push(h("div", { class: "noc-note", text: `Whole network, last ${Hs.daily.length} days (daily total, down + up): ${fmtBytes(sum)} · busiest day ${fmtBytes(Math.max(...dn))}${Hs.stale ? " · stale" : ""}` }),
-        h("div", {}, [hourBars(dn, [], 300, "Data use per day, last 30 days")]));
+      charts.push(h("div", {}, [h("div", { class: "noc-note", text: `Whole network, last ${Hs.daily.length} days (daily total, down + up): ${fmtBytes(sum)} · busiest day ${fmtBytes(Math.max(...dn))}${Hs.stale ? " · stale" : ""}` }),
+        hourBars(dn, [], 300, "Data use per day, last 30 days")]));
     }
     if (U) {
       const u = U.usage_24h;
-      out.push(h("div", { class: "noc-note", text: `Last 24 h, per hour: ↓${fmtBytes(u.down_bytes)} ↑${fmtBytes(u.up_bytes)}${U.stale ? " · stale" : ""}` }), h("div", {}, [hourBars(u.hourly_down, u.hourly_up)]));
+      charts.push(h("div", {}, [h("div", { class: "noc-note", text: `Last 24 h, per hour: ↓${fmtBytes(u.down_bytes)} ↑${fmtBytes(u.up_bytes)}${U.stale ? " · stale" : ""}` }), hourBars(u.hourly_down, u.hourly_up)]));
       const kv = h("div", { class: "kvs" });
       [["Profiles", U.profiles.map((p) => `${p.name} (${p.devices})${p.paused ? " paused" : ""}`).join(", ")],
        ["Guest network", U.guest.enabled ? `on (${U.guest.name})` : "off"],
@@ -183,7 +184,9 @@
        ["Firmware", U.updates.has_update ? `update to ${U.updates.target} pending` : "up to date"],
        ["Eero speed tests", U.speed_tests.slice(0, 5).map((t) => Math.round(t.down_mbps)).join(" · ") + " Mbps down (newest first)"]]
         .forEach(([k, v]) => kv.append(h("div", {}, [`${k} `, h("b", { text: v })])));
-      out.push(h("div", { class: "hostp good" }, [h("div", { class: "hd" }, ["Network settings"]), kv]));
+      out.push(h("div", { class: "hostp good" }, [h("div", { class: "hd" }, ["Network settings"]), kv, h("div", { class: "noc-pair" }, charts)]));
+    } else if (charts.length) {
+      out.push(h("div", { class: "noc-pair" }, charts));
     }
     return h("div", { class: "noc-wifi" }, out.length ? out : [h("div", { class: "noc-note", text: "The Eero cloud API hasn't reported yet." })]);
   }

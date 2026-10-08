@@ -22,9 +22,9 @@ def replexon_db(tmp_path, runs):
 
 
 def test_replexon_last_success_and_last_run(tmp_path):
-    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-09-30 03:00:00", "2026-09-30 03:13:50", 830.0, 6635094229, None),
+    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-09-30 07:00:00", "2026-09-30 07:13:50", 830.0, 6635094229, None),
                                 ("snapshot", "success", "2026-09-27 04:00:00", "2026-09-27 04:02:00", 120.0, 100, None),
-                                ("daily_mirror", "success", "2026-10-01 03:00:00", "2026-10-01 03:16:44", 1004.0, 6635393489, None)])
+                                ("daily_mirror", "success", "2026-10-01 07:00:00", "2026-10-01 07:16:44", 1004.0, 6635393489, None)])
     with open_copy(db) as c:
         r = replexon_summary(c, "America/New_York", NOW)
     assert r["last_success"]["finished_at"] == "2026-10-01T07:16:44Z"   # 3:16 AM EDT
@@ -33,8 +33,8 @@ def test_replexon_last_success_and_last_run(tmp_path):
 
 
 def test_replexon_failed_last_run(tmp_path):
-    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-09-29 03:00:00", "2026-09-29 03:14:27", 867.0, 1, None),
-                                ("daily_mirror", "failure", "2026-10-01 03:00:00", "2026-10-01 03:01:00", 60.0, None, "rsync: connection refused")])
+    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-09-29 07:00:00", "2026-09-29 07:14:27", 867.0, 1, None),
+                                ("daily_mirror", "failure", "2026-10-01 07:00:00", "2026-10-01 07:01:00", 60.0, None, "rsync: connection refused")])
     with open_copy(db) as c:
         r = replexon_summary(c, "America/New_York", NOW)
     assert r["last_run"] == {"status": "failure", "type": "daily_mirror", "finished_at": "2026-10-01T07:01:00Z",
@@ -57,7 +57,7 @@ def test_open_copy_reads_a_wal_database_without_writing_next_to_it(tmp_path):
 
 
 def test_backup_without_a_finish_time_uses_the_start(tmp_path):
-    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-10-01 03:00:00", None, None, 6635393489, None)])
+    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-10-01 07:00:00", None, None, 6635393489, None)])
     with open_copy(db) as c:
         r = replexon_summary(c, "America/New_York", NOW)
     assert r["last_success"]["finished_at"] == "2026-10-01T07:00:00Z" and r["hours_since_success"] == 17.5
@@ -75,7 +75,7 @@ def replexon_full(tmp_path, runs, snapshots=None, reachable="true"):
 
 
 def nightly(day, status="success", minutes=14.0, size=6635393489):
-    return ("daily_mirror", status, f"2026-{day} 03:00:00", f"2026-{day} 03:{int(minutes):02d}:00", minutes * 60, size, None if status == "success" else "rsync failed")
+    return ("daily_mirror", status, f"2026-{day} 07:00:00", f"2026-{day} 07:{int(minutes):02d}:00", minutes * 60, size, None if status == "success" else "rsync failed")
 
 
 def test_backup_history_snapshots_and_averages(tmp_path):
@@ -91,16 +91,16 @@ def test_backup_history_snapshots_and_averages(tmp_path):
 
 
 def test_a_backup_still_running_is_not_a_failed_night(tmp_path):
-    runs = [nightly("09-30"), ("daily_mirror", "running", "2026-10-01 03:00:00", None, None, None, None)]
+    runs = [nightly("09-30"), ("daily_mirror", "running", "2026-10-01 07:00:00", None, None, None, None)]
     with open_copy(replexon_full(tmp_path, runs)) as c:
         r = replexon_summary(c, "America/New_York", NOW)
     assert r["nights"][-1] == {"day": "2026-10-01", "status": "running"}
 
 
 def test_replexon_transfer_db_safe_and_30d_rate(tmp_path):
-    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-09-29 03:00:00", "2026-09-29 03:10:00", 600.0, 100, None),
-                                ("daily_mirror", "failure", "2026-09-30 03:00:00", "2026-09-30 03:01:00", 60.0, None, "x"),
-                                ("daily_mirror", "success", "2026-10-01 03:00:00", "2026-10-01 03:16:44", 1004.0, 6635393489, None)])
+    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-09-29 07:00:00", "2026-09-29 07:10:00", 600.0, 100, None),
+                                ("daily_mirror", "failure", "2026-09-30 07:00:00", "2026-09-30 07:01:00", 60.0, None, "x"),
+                                ("daily_mirror", "success", "2026-10-01 07:00:00", "2026-10-01 07:16:44", 1004.0, 6635393489, None)])
     c = sqlite3.connect(db)
     c.execute("UPDATE backup_runs SET transferred_bytes = 2147483648, files_transferred = 321, db_safe = 1 WHERE started_at LIKE '2026-10-01%'")
     c.commit()
@@ -113,7 +113,15 @@ def test_replexon_transfer_db_safe_and_30d_rate(tmp_path):
 
 
 def test_replexon_db_safe_unrecorded_is_none(tmp_path):
-    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-10-01 03:00:00", "2026-10-01 03:16:44", 1004.0, 5, None)])
+    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-10-01 07:00:00", "2026-10-01 07:16:44", 1004.0, 5, None)])
     with open_copy(db) as c:
         r = replexon_summary(c, "America/New_York", NOW)
     assert r["last_success"]["db_safe"] is None
+
+
+def test_replexon_2_stores_utc_so_a_3am_eastern_run_reports_3am(tmp_path):
+    db = replexon_db(tmp_path, [("daily_mirror", "success", "2026-10-01 07:00:46.450057", "2026-10-01 07:01:46.452120", 60.0, 4049150297, None)])
+    with open_copy(db) as c:
+        r = replexon_summary(c, "America/New_York", NOW)
+    assert r["last_success"]["finished_at"] == "2026-10-01T07:01:46Z"   # not 11:01Z (the old double conversion)
+    assert r["nights"][-1] == {"day": "2026-10-01", "status": "ok"}
