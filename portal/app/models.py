@@ -22,6 +22,15 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
 
+class UserPrefs(Base):
+    """A user's own choices from the Profile page; no row = the defaults. A new table, so create_all adds it on startup."""
+    __tablename__ = "user_prefs"
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    digest: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="1")    # the morning report
+    instant: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="1")   # Danger + all-clear
+    theme: Mapped[str] = mapped_column(String(10), default="", nullable=False, server_default="")     # 'day' | 'midnight' | ''
+
+
 class Session(Base):
     __tablename__ = "sessions"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -48,6 +57,23 @@ class Incident(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     emailed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     clear_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)   # the all-clear went out (or was skipped)
+    acked_by: Mapped[str | None] = mapped_column(String(50), nullable=True)            # Acknowledge on a card: who, and when
+    acked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    ack_skipped: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")   # the ack set `emailed`; Undo puts it back
+
+
+class MaintenanceWindow(Base):
+    """Planned work: while start <= now < end (and not cancelled) Danger emails and all-clears for `target` wait.
+    A new table, so create_all adds it on startup."""
+    __tablename__ = "maintenance_windows"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    target: Mapped[str] = mapped_column(String(160), nullable=False)   # an incident key "<kind>:<target>", or "*" for everything
+    start: Mapped[datetime] = mapped_column(DateTime, nullable=False)  # naive UTC
+    end: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    note: Mapped[str] = mapped_column(String(140), default="", nullable=False, server_default="")
+    created_by: Mapped[str] = mapped_column(String(50), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    cancelled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
 
 
 class DailyMetric(Base):

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="day">
+<html lang="en" data-theme="{{ user_theme(user) }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script>/* same Day / Midnight choice as the dashboard */ try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight") document.documentElement.dataset.theme = "midnight"; } catch (e) {}</script>
+<script>/* same Day / Midnight choice as the dashboard */ try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight" || t === "day") document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <style>
 :root, [data-theme="day"] {
   --bg: #efece3; --panel: #ffffff; --panel-2: #f7f5ef; --border: #dcd7c9; --ink: #1b1d22; --muted: #646871;
@@ -109,7 +109,7 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px dashed var(--borde
 <header class="top">
   <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="#F1ECE0" stroke="#1E1E1E" stroke-width="10"/><path fill="#1E1E1E" d="M26 23h14v21h20V23h14v54H60V56H40v21H26z"/></svg><a href="/">HAHBAH</a></div>
   <div class="spacer"></div>
-  <form class="user" method="post" action="/logout"><a class="linklike" href="/">← Dashboard</a> · {% if is_admin %}<a class="linklike" href="/settings">Settings</a> · {% endif %}{{ user.username }} · <button class="linklike" type="submit">Sign out</button></form>
+  {% include "_usermenu.html" %}
 </header>
 
 <main>

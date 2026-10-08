@@ -28,6 +28,9 @@ COLLECTOR_SOURCES = (("nas", "Synology NAS over SSH: CPU, memory, temps, RAID, v
                      ("pings", "Ping: the Eero, the NAS and central", "every minute"),
                      ("smart", "Drive health (SMART) for the NAS's four drives", "daily at 4:05 AM"),
                      ("speed", "Internet speed test", "daily at 4:10 AM"),
+                     ("eero", "Eero cloud API: mesh nodes and connected devices", "every 5 min"),
+                     ("eero_usage", "Eero cloud API: 24 h data use per device, speed tests, profiles, settings", "hourly"),
+                     ("eero_history", "Eero cloud API: 7 and 30 day data use per device, 30 daily totals", "daily at 4:20 AM"),
                      ("backup", "RePlexOn's backup history", "every 5 min"),
                      ("edge", "Porkbun (domain + DNS records) and DNS answers through the Eero", "every 6 h"))
 
@@ -97,6 +100,9 @@ class SnapshotBuilder:
                  ("speed", lambda: merge.apply_speed(files.get("speed"), snap, nodes, alerts, self.tz, speed_median)),
                  ("pings", lambda: merge.apply_pings(files.get("pings"), snap, nodes, alerts)),
                  ("backup", lambda: merge.apply_backup(files.get("backup"), snap, nodes, alerts, self.tz)),
+                 ("eero", lambda: merge.apply_eero(files.get("eero"), snap, nodes, alerts)),
+                 ("eero_usage", lambda: merge.apply_eero_usage(files.get("eero_usage"), snap)),
+                 ("eero_history", lambda: merge.apply_eero_history(files.get("eero_history"), snap)),
                  ("edge", lambda: merge.apply_edge(files.get("edge"), snap, nodes, alerts, now)))
         for name, step in steps:
             try:
@@ -186,7 +192,7 @@ class SnapshotBuilder:
     def _deploy(self, d, snap, alerts) -> bool:
         if not d:
             return False
-        snap["edge"]["deploy"].update({k: d[k] for k in ("commit", "message", "at", "ok")})
+        snap["edge"]["deploy"].update({k: d[k] for k in ("commit", "version", "message", "at", "ok", "history") if k in d})
         if not d["ok"]:
             alerts.append({"id": "live-deploy", "severity": "warn", "target": "caddy", "kind": "deploy_failed",
                            "message": f"The last deploy failed: {d['message']}", "meta": {}})

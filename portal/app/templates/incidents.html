@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" data-theme="{{ user_theme(user) }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Incidents · HAHBAH</title>
+<link rel="icon" href="/static/site/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/site/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/site/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight" || t === "day") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<style>
+:root, [data-theme="day"] { --bg: #efece3; --panel: #ffffff; --border: #dcd7c9; --ink: #1b1d22; --muted: #646871; --bg-veil: rgba(239,236,227,.9);
+  --good: #1f7a45; --warn: #9a5800; --crit: #c42b2b; --green: #4e6e58; --shadow: 0 1px 2px rgba(20,20,30,.06), 0 4px 16px rgba(20,20,30,.06); }
+[data-theme="midnight"] { --bg: #070b16; --panel: #0f1528; --border: #222c4a; --ink: #e9edf6; --muted: #8e97ad; --bg-veil: rgba(7,11,22,.9);
+  --good: #3ccf7e; --warn: #ffb547; --crit: #ff5d57; --green: #4e6e58; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.35); }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 "Overpass", system-ui, sans-serif; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; filter: saturate(.7);
+  background: linear-gradient(var(--bg-veil), var(--bg-veil)), url("/static/site/station-1920.jpg") center 40% / cover no-repeat; }
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px 8px; }
+.brand { --brand-ink: #f1ece0; display: flex; align-items: center; gap: 10px; background: #4e6e58; color: var(--brand-ink); padding: 7px 14px 12px 8px; border-radius: 6px; border: 3px solid #2a2a2a; box-shadow: inset 0 -5px 0 #f1ece0; font: 700 22px/1 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.brand svg { width: 30px; height: 30px; }
+.brand a { color: inherit; text-decoration: none; padding-top: 4px; }
+.spacer { flex: 1; }
+main { max-width: 760px; margin: 0 auto; padding: 8px 20px 60px; }
+h1 { font: 900 44px/1.05 "Overpass", sans-serif; letter-spacing: -.02em; margin: 14px 0 6px; }
+.kicker { font: 700 12px/1 "JetBrains Mono", monospace; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 10px; margin: 34px 0 10px; }
+.kicker::before { content: ""; width: 30px; height: 6px; border-radius: 3px; background: var(--k, var(--green)); }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 6px 20px; }
+.row { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid var(--border); }
+.row:first-child { border-top: 0; }
+.row .what { flex: 1; min-width: 0; }
+.row b { display: block; font-size: 16px; }
+.row span.sub { display: block; color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+label.f { display: block; padding: 8px 0; font-weight: 700; }
+input[type=password] { display: block; margin-top: 4px; width: 100%; max-width: 340px; font: 600 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; background: var(--panel); color: var(--ink); }
+.btn { font: 700 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; background: var(--panel); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.notice { margin: 14px 0 0; padding: 12px 16px; border-radius: 10px; background: color-mix(in srgb, var(--good) 14%, var(--panel)); border: 1px solid color-mix(in srgb, var(--good) 40%, var(--border)); font-weight: 700; }
+.notice.bad { background: color-mix(in srgb, var(--crit) 12%, var(--panel)); border-color: color-mix(in srgb, var(--crit) 40%, var(--border)); }
+form.pw, form.prefs { padding: 8px 0 14px; }
+label.tg { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; font-weight: 700; cursor: pointer; }
+label.tg input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--green); flex: none; }
+label.tg span.sub { display: block; font-weight: 400; color: var(--muted); font-size: 13.5px; }
+select { display: block; margin-top: 4px; font: 600 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; background: var(--panel); color: var(--ink); }
+form .hint { color: var(--muted); font-size: 13.5px; }
+p.hint, span.hint.blk { display: block; margin: 6px 0 10px; }
+@media (max-width: 640px) { .row { flex-wrap: wrap; } h1 { font-size: 34px; } }
+main { max-width: 1000px; }
+form.flt { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding: 12px 0; }
+form.flt label { font-weight: 700; font-size: 13.5px; }
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px 9px 0; border-top: 1px solid var(--border); vertical-align: top; }
+th { border-top: 0; font: 700 12px/1 "JetBrains Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+td.msg { overflow-wrap: anywhere; min-width: 220px; }
+.sev { display: inline-block; padding: 2px 9px; border-radius: 999px; font-weight: 800; font-size: 12px; color: #fff; }
+.sev.crit { background: var(--crit); } .sev.warn { background: var(--warn); }
+.pager { display: flex; gap: 14px; align-items: center; justify-content: center; padding: 14px 0; color: var(--muted); }
+.pager a { color: var(--ink); font-weight: 700; }
+@media (max-width: 900px) { th.opt, td.opt { display: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="#F1ECE0" stroke="#1E1E1E" stroke-width="10"/><path fill="#1E1E1E" d="M26 23h14v21h20V23h14v54H60V56H40v21H26z"/></svg><a href="/">HAHBAH</a></div>
+  <div class="spacer"></div>
+  {% include "_usermenu.html" %}
+</header>
+<main>
+  <h1>Incidents</h1>
+  <form class="flt card" method="get" action="/incidents">
+    <label>Severity<select name="severity"><option value="">All</option><option value="crit"{% if severity == "crit" %} selected{% endif %}>Danger</option><option value="warn"{% if severity == "warn" %} selected{% endif %}>Caution</option></select></label>
+    <label>State<select name="state"><option value="">All</option><option value="open"{% if state == "open" %} selected{% endif %}>Open</option><option value="closed"{% if state == "closed" %} selected{% endif %}>Closed</option></select></label>
+    <button class="btn primary" type="submit">Filter</button>
+  </form>
+  <div class="kicker">{{ total }} incident{{ "" if total == 1 else "s" }}</div>
+  <div class="card tbl">
+    <table>
+      <thead><tr><th>Severity</th><th>What</th><th>Opened</th><th>Lasted</th><th class="opt">Acknowledged by</th><th class="opt">Emailed</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr><td><span class="sev {{ r.severity }}">{{ "Danger" if r.severity == "crit" else "Caution" }}</span></td>
+          <td class="msg"><b>{{ r.target }}</b> · {{ r.message }}</td><td>{{ r.opened }}</td><td>{{ r.dur or "open" }}</td>
+          <td class="opt">{{ r.acked_by or "" }}</td><td class="opt">{{ "Yes" if r.emailed else "No" }}</td></tr>
+      {% else %}<tr><td colspan="6">Nothing recorded.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% set q = "&severity=" ~ severity ~ "&state=" ~ state %}
+  <nav class="pager" aria-label="Pages">
+    {% if page > 1 %}<a href="/incidents?page={{ page - 1 }}{{ q }}">Newer</a>{% endif %}
+    <span>Page {{ page }} of {{ pages }}</span>
+    {% if page < pages %}<a href="/incidents?page={{ page + 1 }}{{ q }}">Older</a>{% endif %}
+  </nav>
+</main>
+</body>
+</html>

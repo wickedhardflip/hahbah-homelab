@@ -8,6 +8,7 @@ import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from urllib.parse import quote
 
@@ -20,7 +21,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import models  # noqa: F401  (registers the tables)
 from .auth import (LoginLimiter, NotSignedIn, authenticate, create_session, current_user, delete_session,
-                   safe_next, same_origin, user_from_request)
+                   safe_next, same_origin, user_from_request, verify_password, hash_password)
+from .auth import _session_id as auth_session_id
 from .config import Settings, load_settings
 from .collectors.deploy import last_deploy
 from .collectors.host import HostSampler
@@ -32,19 +34,22 @@ from .collectors.upnp import eero_status
 from .collectors.cert import fetch_der, parse_cert
 from .collectors.health import check_all, health_targets
 from .mailer import MAX_WEB, parse_recipients
+from .manage import MIN_LENGTH
 from .merge import read_collector
 from .db import Base, get_db, make_engine, make_sessionmaker, migrate
 from .google import GoogleCancelled, GoogleLogin, GoogleStateError, GoogleUnavailable
-from .models import Session as SessionRow, User, utcnow
+from .models import Session as SessionRow, User, UserPrefs, utcnow
 from . import settingsstore
-from .recorder import Recorder
+from .recorder import Recorder, user_addresses
 from .registry import load_registry
 from .snapshot import SnapshotBuilder, SnapshotStore
-from .views import THUMB_PATH, apps_for, snapshot_for
+from .views import HIDDEN_APP, THUMB_PATH, apps_for, snapshot_for
+from .views import discreet as discreet_view, duration, edge_panel, scrub_incidents, whatchanged
 
 HERE = Path(__file__).parent
 REEL, REEL_POSTER = "hahbah-reel.mp4", "hahbah-reel.jpg"
 MEDIA_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,60}\.(mp4|jpg|png|webp)$")
+MAINT_KEY = re.compile(r"^(\*|[a-z_]{1,40}:[\w.\-/]{1,80})$")   # a maintenance window's target: an incident key or "*"
 MEDIA_TYPES = {"mp4": "video/mp4", "jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
 log = logging.getLogger("portal")
 
@@ -65,7 +70,7 @@ def default_builder(settings: Settings, trends=lambda: {}) -> SnapshotBuilder:
     host = HostSampler(settings.host_proc, settings.host_sys, settings.nic, settings.disks)
     sni = f"home.{settings.base_domain}"
     return SnapshotBuilder(topology, host=host.sample, eero=lambda: eero_status(settings.eero_igd_url),
-                           deploy=lambda: last_deploy(settings.deploy_log), apps=lambda: load_registry(settings.apps_file),
+                           deploy=lambda: last_deploy(settings.deploy_log, history=True), apps=lambda: load_registry(settings.apps_file),
                            plex=lambda: plex_stats(settings.tautulli_url, settings.tautulli_api_key, local_today(settings.home_tz)),
                            cert=lambda: parse_cert(fetch_der(settings.caddy_host, 443, sni)),
                            health=lambda: check_all(health_targets(load_registry(settings.apps_file), settings.host_gateway,
@@ -115,6 +120,46 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
     app.mount("/static", CachedStatic(directory=HERE / "static"), name="static")
 
     templates = Jinja2Templates(directory=HERE / "templates")
+
+    def prefs_of(db, user) -> UserPrefs:
+        return db.get(UserPrefs, user.id) or UserPrefs(user_id=user.id, digest=True, instant=True, theme="")
+
+    def user_theme(user) -> str:
+        """The <html data-theme> a page starts with: the user's Profile default (a browser's own Day/Midnight choice wins)."""
+        with SessionLocal() as db:
+            return prefs_of(db, user).theme or "day"
+
+    templates.env.globals["user_theme"] = user_theme
+
+    def mute_state() -> dict:
+        """The global alert mute for the header bell; a mute_until in the past counts as unmuted."""
+        with SessionLocal() as db:
+            until, by = settingsstore.get(db, "mute_until"), settingsstore.get(db, "mute_by")
+        muted = bool(until) and until > datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        label = ""
+        if muted:
+            at = datetime.fromisoformat(until.replace("Z", "+00:00")).astimezone(ZoneInfo(settings.home_tz))
+            label = f"Muted by {by or 'someone'} until {at.strftime('%I:%M %p').lstrip('0').lower()}"
+        return {"muted": muted, "until": until if muted else "", "by": by if muted else "", "label": label}
+
+    templates.env.globals["mute_state"] = mute_state
+
+    def launcher_apps(user) -> list:
+        """Header launcher: the apps this person may see, each with an up/down state from the live snapshot."""
+        try:
+            apps = apps_for(load_registry(settings.apps_file), user.is_admin, is_discreet())
+        except ValueError:
+            return []
+        state = {n["id"]: n.get("status") for n in store.current().get("nodes", [])}
+        return [{"name": a["name"], "url": a["url"], "state": {"good": "up", "crit": "down"}.get(state.get(a["id"]), "unknown")} for a in apps]
+
+    templates.env.globals["launcher_apps"] = launcher_apps
+
+    def set_mute(db, user, hours: int) -> None:
+        """hours 0 = unmute. Shared by the header bell and the Settings buttons."""
+        until = datetime.now(timezone.utc) + timedelta(hours=hours) if hours else None
+        settingsstore.put(db, "mute_until", until.strftime("%Y-%m-%dT%H:%M:%SZ") if until else "")
+        settingsstore.put(db, "mute_by", user.username if until else "")
     app.state.limiter = LoginLimiter()
     app.state.tautulli_get = tautulli.default_get
     app.state.tautulli_get_raw = tautulli.default_get_raw
@@ -254,11 +299,123 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
         response.delete_cookie(settings.cookie_name, domain=settings.cookie_domain)
         return response
 
+    def clock(t: datetime) -> str:
+        """'3:40 pm' in home time, with the date when it isn't today."""
+        tz = ZoneInfo(settings.home_tz)
+        local = t.astimezone(tz)
+        hm = local.strftime("%I:%M %p").lstrip("0").lower()
+        return hm if local.date() == datetime.now(tz).date() else f"{local.strftime('%b')} {local.day}, {hm}"
+
+    def hidden_key(key: str) -> bool:
+        """Discreet mode: keys about the hidden app can't be acked or put in maintenance, nor their existence confirmed."""
+        if not is_discreet():
+            return False
+        keys = lambda s: {f"{a.get('kind')}:{a.get('target')}" for a in s.get("alerts", [])}
+        return key.split(":", 1)[-1] == HIDDEN_APP or (key in keys(store.current()) and key not in keys(discreet_view(store.current())))
+
+    def with_acks(snap: dict) -> dict:
+        """Each alert says whether it has an OPEN incident (`incident`, so the card shows Acknowledge) and who acked it,
+        and whether a maintenance window covers it (`maint_label`). Incidents open after 2 checks in a row, so an alert
+        in its first check has no button yet. Copies, never mutates the shared snapshot; runs after snapshot_for, so
+        Discreet mode has already dropped what it hides."""
+        acks, active = recorder.open_acks(), recorder.active_windows()
+        none = {"acked_by": None, "acked_at": None}
+        def one(a):
+            key = f"{a.get('kind')}:{a.get('target')}"
+            got, until = acks.get(key), recorder.held_until(active, key)
+            at = got and got["acked_at"]
+            return {**a, "incident": got is not None, **(got or none), "acked_at": at.isoformat() if at else None,
+                    "maint_until": until.isoformat() if until else None,
+                    "maint_label": f"In maintenance until {clock(until)}" if until else ""}
+        return {**snap, "alerts": [one(a) for a in snap.get("alerts", [])],
+                "maintenance": [{"target": t, "end": e.isoformat()} for t, e in active.items() if not hidden_key(t)]}
+
+    def visible_view(user) -> dict:
+        return with_acks(snapshot_for(store.current(), user.is_admin, is_discreet()))
+
     @app.get("/")
     def dashboard(request: Request, user=Depends(current_user)):
+        mode = is_discreet()
+        snap = visible_view(user)
+        changed = whatchanged(snap, recorder.recent_incidents(hours=24 * 14, limit=60), datetime.now(timezone.utc),
+                              settings.home_tz, show_subjects=bool(user.is_admin) and not mode, discreet_mode=mode)
         return templates.TemplateResponse(request, "dashboard.html",
-                                          {"snapshot": snapshot_for(store.current(), user.is_admin, is_discreet()), "user": user,
+                                          {"snapshot": snap, "user": user, "changed": changed,
                                            "is_admin": bool(user.is_admin)})
+
+    @app.get("/incidents")
+    def incidents_page(request: Request, severity: str = Query(""), state: str = Query(""), page: str = Query("1"),
+                       user=Depends(current_user)):
+        mode, per = is_discreet(), 25
+        severity, state = severity if severity in ("crit", "warn") else "", state if state in ("open", "closed") else ""
+        page = max(1, int(page)) if page.isascii() and page.isdigit() else 1
+        rows, total = recorder.history(severity, state, page, per, lambda r: scrub_incidents(r, bool(user.is_admin) and not mode, mode))
+        pages = max(1, -(-total // per))
+        if page > pages:
+            page = pages
+            rows, total = recorder.history(severity, state, page, per, lambda r: scrub_incidents(r, bool(user.is_admin) and not mode, mode))
+        tz = ZoneInfo(settings.home_tz)
+        at = lambda t: t.astimezone(tz).strftime("%b %d, %I:%M %p").replace(" 0", " ") if t else ""
+        rows = [{**r, "opened": at(r["opened_at"]), "dur": duration(r["opened_at"], r["closed_at"])} for r in rows]
+        return templates.TemplateResponse(request, "incidents.html", {
+            "user": user, "rows": rows, "total": total, "page": page, "pages": pages, "severity": severity, "state": state})
+
+    # ---------- Maintenance windows (any signed-in user) ----------
+    def maintenance_page(request: Request, user, target: str = "", error: str = "", saved: str = "", status: int = 200):
+        snap, opts = visible_view(user), {"*": "Everything"}
+        for a in snap.get("alerts", []):
+            if a.get("severity") in ("warn", "crit"):
+                opts.setdefault(f"{a['kind']}:{a['target']}", f"{a['target']} · {a['message']}"[:90])
+        try:
+            for a in apps_for(load_registry(settings.apps_file), user.is_admin, is_discreet()):
+                opts.setdefault(f"app_down:{a['id']}", f"{a['name']} (app down)")
+        except ValueError:
+            pass
+        if MAINT_KEY.fullmatch(target) and not hidden_key(target):
+            opts.setdefault(target, target)
+        rows = [{**w, "from": clock(w["start"]), "to": clock(w["end"]), "label": opts.get(w["target"], w["target"])}
+                for w in recorder.windows() if not hidden_key(w["target"])]
+        return templates.TemplateResponse(request, "maintenance.html", {
+            "user": user, "opts": opts, "target": target, "error": error, "saved": saved,
+            "active": [w for w in rows if w["state"] == "active"], "upcoming": [w for w in rows if w["state"] == "upcoming"],
+            "past": [w for w in rows if w["state"] == "past"][:20]}, status_code=status)
+
+    @app.get("/maintenance")
+    def maintenance_get(request: Request, target: str = Query(""), saved: str = Query(""), user=Depends(current_user)):
+        return maintenance_page(request, user, target, saved={"added": "Window saved.", "cancelled": "Window cancelled."}.get(saved, ""))
+
+    @app.post("/api/maintenance")
+    def maintenance_add(request: Request, target: str = Form(""), start: str = Form(""), minutes: str = Form(""),
+                        end: str = Form(""), note: str = Form(""), user=Depends(current_user)):
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        if hidden_key(target):
+            raise HTTPException(status_code=404, detail="Unknown target.")
+        tz, note = ZoneInfo(settings.home_tz), note.strip()
+        local = lambda v: datetime.strptime(v, "%Y-%m-%dT%H:%M").replace(tzinfo=tz)   # <input type=datetime-local>, home time
+        try:
+            t0 = local(start) if start else recorder.now()
+            t1 = local(end) if minutes == "custom" else t0 + timedelta(minutes={"30": 30, "120": 120, "480": 480}[minutes])
+        except (ValueError, KeyError):
+            t0 = t1 = None
+        error = ("Pick what the window covers." if not MAINT_KEY.fullmatch(target)
+                 else "Enter a valid start and end." if t0 is None
+                 else "The end must be after the start." if t1 <= t0
+                 else "A window can last at most 14 days." if t1 - t0 > timedelta(days=14)
+                 else "Keep the note to 140 characters." if len(note) > 140 else "")
+        if error:
+            return maintenance_page(request, user, target, error=error, status=400)
+        recorder.add_window(target, t0, t1, note, user.username)
+        return RedirectResponse("/maintenance?saved=added", status_code=303)
+
+    @app.post("/api/maintenance/{wid}/cancel")
+    def maintenance_cancel(request: Request, wid: int, user=Depends(current_user)):
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        w = next((w for w in recorder.windows() if w["id"] == wid), None)
+        if w is None or hidden_key(w["target"]) or not recorder.cancel_window(wid):
+            raise HTTPException(status_code=404, detail="No such window.")
+        return RedirectResponse("/maintenance?saved=cancelled", status_code=303)
 
     @app.get("/about")
     def about(request: Request, user=Depends(current_user)):
@@ -268,6 +425,60 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
             "video": (settings.media_dir / REEL).is_file(), "poster": (settings.media_dir / REEL_POSTER).is_file(),
             "reel": REEL, "reel_poster": REEL_POSTER, "is_admin": bool(user.is_admin),
             "v": int((settings.media_dir / REEL).stat().st_mtime) if (settings.media_dir / REEL).is_file() else 0})   # cache-buster
+
+    # ---------- Profile (any signed-in user) ----------
+    def profile_page(request: Request, user, note: str = "", bad: bool = False, status: int = 200):
+        with SessionLocal() as db:
+            prefs = prefs_of(db, user)
+        return templates.TemplateResponse(request, "profile.html", {
+            "user": user, "note": note, "bad": bad, "min_length": MIN_LENGTH, "prefs": prefs,
+            "emails": sorted(user_addresses(user.username, user.google_email)),
+            "since": user.created_at.strftime("%B %Y") if user.created_at else "unknown"}, status_code=status)
+
+    @app.get("/profile")
+    def profile_get(request: Request, saved: str = Query(""), user=Depends(current_user)):
+        return profile_page(request, user, {"password": "Password changed. Your other sign-ins were ended.",
+                                            "unlinked": "Google account unlinked.", "prefs": "Preferences saved."}.get(saved, ""))
+
+    @app.post("/profile/password")
+    def profile_password(request: Request, current: str = Form(""), new: str = Form(""), confirm: str = Form(""),
+                         user=Depends(current_user), db=Depends(get_db)):
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        if not app.state.limiter.try_acquire(f"pw:{user.id}"):
+            return profile_page(request, user, "Too many attempts. Try again in 15 minutes.", True, 429)
+        error = ("Current password is wrong." if not verify_password(current, user.password_hash)
+                 else "The new passwords don't match." if new != confirm
+                 else f"Use at least {MIN_LENGTH} characters." if len(new) < MIN_LENGTH else "")
+        if error:
+            return profile_page(request, user, error, True, 400)
+        app.state.limiter.reset(f"pw:{user.id}")
+        user.password_hash = hash_password(new)
+        keep = auth_session_id(request.cookies.get(settings.cookie_name, ""))
+        db.query(SessionRow).filter(SessionRow.user_id == user.id, SessionRow.id != keep).delete()
+        db.commit()
+        return RedirectResponse("/profile?saved=password", status_code=303)
+
+    @app.post("/profile/prefs")
+    def profile_prefs(request: Request, digest: str = Form(""), instant: str = Form(""), theme: str = Form(""),
+                      user=Depends(current_user), db=Depends(get_db)):
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        if theme not in ("", "day", "midnight"):
+            raise HTTPException(status_code=400, detail="Unknown theme.")
+        db.merge(UserPrefs(user_id=user.id, digest=bool(digest), instant=bool(instant), theme=theme))   # unticked box = off
+        db.commit()
+        return RedirectResponse("/profile?saved=prefs", status_code=303)
+
+    @app.post("/profile/google/unlink")
+    def profile_google_unlink(request: Request, current: str = Form(""), user=Depends(current_user), db=Depends(get_db)):
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        if not verify_password(current, user.password_hash):   # a Google-only user may not know the admin-set password
+            return profile_page(request, user, "Enter your current password to unlink Google, so you can still sign in.", True, 400)
+        user.google_email = None
+        db.commit()
+        return RedirectResponse("/profile?saved=unlinked", status_code=303)
 
     # ---------- Settings (admins only) ----------
     def settings_page(request: Request, user, saved: str = "", status: int = 200):
@@ -293,7 +504,7 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
             "can_add": bool(recorder.mail_dir) and len(recorder.web_recipients()) < MAX_WEB,
             "sources": snap.get("sources", []), "deploy": (snap.get("edge") or {}).get("deploy") or {},
             "incidents": recorder.recent_incidents(hours=24 * 14, limit=40), "muted": muted, "mute_until": mute,
-            "saved": saved, "tz": settings.home_tz,
+            "saved": saved, "tz": settings.home_tz, "edge": edge_panel(snap.get("edge"), datetime.now(timezone.utc)),
             "sports_menus": {slot: menu(slot) for slot in SLOTS}}, status_code=status)
 
     @app.get("/settings")
@@ -360,11 +571,10 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
                             log.warning("could not write the sports picks file")
                     note = "sports"
             elif action == "mute" and hours in (1, 4, 24):
-                until = datetime.now(timezone.utc) + timedelta(hours=hours)
-                settingsstore.put(db, "mute_until", until.strftime("%Y-%m-%dT%H:%M:%SZ"))
+                set_mute(db, user, hours)
                 note = "muted"
             elif action == "unmute":
-                settingsstore.put(db, "mute_until", "")
+                set_mute(db, user, 0)
                 note = "unmuted"
             elif action == "test_email":
                 ok = recorder.send_test()
@@ -411,7 +621,38 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
 
     @app.get("/api/snapshot")
     def api_snapshot(user=Depends(current_user)):
-        return snapshot_for(store.current(), user.is_admin, is_discreet())
+        return {**visible_view(user), "mute": mute_state()}
+
+    def ack_route(request: Request, key: str, user, undo: bool) -> dict:
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        if hidden_key(key):
+            raise HTTPException(status_code=404, detail="No open incident with that key.")
+        if not (recorder.unack(key) if undo else recorder.ack(key, user.username)):
+            raise HTTPException(status_code=404, detail="No open incident with that key.")
+        return {"key": key, **recorder.open_acks().get(key, {"acked_by": None, "acked_at": None})}
+
+    @app.post("/api/incidents/{key}/ack")
+    def api_ack(request: Request, key: str, user=Depends(current_user)):
+        return ack_route(request, key, user, undo=False)
+
+    @app.post("/api/incidents/{key}/unack")
+    def api_unack(request: Request, key: str, user=Depends(current_user)):
+        return ack_route(request, key, user, undo=True)
+
+    @app.post("/api/mute")
+    async def api_mute(request: Request, user=Depends(current_user)):
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        try:
+            hours = (await request.json())["hours"]
+        except Exception:  # noqa: BLE001 (not JSON / no hours: same answer)
+            hours = None
+        if isinstance(hours, bool) or hours not in (0, 1, 4, 24):
+            raise HTTPException(status_code=400, detail="hours must be 0, 1, 4 or 24.")
+        with SessionLocal() as db:
+            set_mute(db, user, hours)
+        return mute_state()
 
     @app.get("/api/apps")
     def api_apps(user=Depends(current_user)):

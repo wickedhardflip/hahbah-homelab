@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from dataclasses import replace
 
 import pytest
@@ -123,3 +124,20 @@ def test_speedtest_is_admin_only_and_off_by_default(settings, tmp_path, sapp=Non
     assert off.post("/api/speedtest", headers={"origin": "https://home.hahbah.com"}).status_code == 404
     non = client(create_app(replace(settings, data_dir=tmp_path / "d2", speed_request=tmp_path / "r"), builder=FakeBuilder(SNAP), collect=False), admin=False)
     assert non.post("/api/speedtest", headers={"origin": "https://home.hahbah.com"}).status_code == 403
+
+
+def test_edge_panel_on_settings_page(settings, tmp_path):
+    soon = (datetime.now(timezone.utc) + timedelta(days=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    snap = {**SNAP, "edge": {"cert": {"expires": soon, "issuer": "Let's Encrypt (R11)", "names": []},
+                             "domain": {"expires": "2030-01-01T00:00:00Z", "registrar": "Porkbun", "auto_renew": True}}}
+    ob = tmp_path / "outbox"
+    ob.mkdir()
+    app = create_app(replace(settings, outbox_dir=ob), builder=FakeBuilder(snap), collect=False)
+    page = client(app).get("/settings").text
+    assert "Edge &amp; domain" in page
+    assert "Let&#39;s Encrypt (R11)" in page and "Porkbun" in page
+    assert 'edge-row crit"' in page and 'edge-row "' in page   # cert <7 days is Danger, domain is fine
+
+
+def test_edge_panel_without_data_says_so(sapp):
+    assert "Not checked yet" in client(sapp).get("/settings").text

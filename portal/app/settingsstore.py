@@ -7,6 +7,7 @@ DEFAULTS = {
     "digest_time": "06:30",   # home time
     "alerts_enabled": "1",    # instant Danger emails + all-clears
     "mute_until": "",         # ISO UTC; instant alerts muted until then
+    "mute_by": "",            # username who set the mute
     "alerts_off": "",         # comma list: allowlisted addresses that don't get instant alerts
     "report_off": "",         # comma list: allowlisted addresses that don't get the morning report
     "web_recipients": "",     # comma list: addresses added on the Settings page (max 5; also in /mail/recipients.json)

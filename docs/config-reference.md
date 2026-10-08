@@ -41,6 +41,7 @@ Each job runs only if its setting is present.
 |---|---|---|
 | `NAS_HOST` (+ `NAS_USER`, `NAS_KEY`, `NAS_KNOWN_HOSTS`) | unset | NAS stats every minute, SMART daily |
 | `PORKBUN_API_KEY`, `PORKBUN_API_SECRET_KEY` (+ `EDGE_DOMAIN`, `EERO_DNS`) | unset | Domain, DNS, certificate checks every 6 hours |
+| `EERO_SESSION` | unset | Eero cloud API, read-only: mesh nodes and devices every 5 min, data use and settings hourly, 7/30 day history daily (about 48 calls an hour). Get the token with `tools/eero_login.py` |
 | `MOUNTS` (+ `MOUNTS_ROOT`) | unset | NFS mount checks |
 | `PING_TARGETS` | unset | `name=ip,...` reachability |
 | `SPEEDTEST` | `1` | One internet speed test a day (`0` to turn off) |

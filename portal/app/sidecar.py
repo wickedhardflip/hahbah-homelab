@@ -3,7 +3,7 @@
     python -m app.sidecar          (the `collector` service in hosts/central/compose.yml)
 
 Jobs: nas (60 s, SSH with a key the NAS restricts to its stats script), mounts + pings (60 s), smart (daily 04:05) and
-speed (daily 04:10), edge (6 h, Porkbun + DNS via the Eero), backup (5 min, a copy of RePlexOn's database), and mailer
+speed (daily 04:10), eero + eero_usage (5 min / hourly, the Eero cloud API: nodes, devices, usage, settings), edge (6 h, Porkbun + DNS via the Eero), backup (5 min, a copy of RePlexOn's database), and mailer
 (30 s, sends the portal's outbox with msmtp to the owners + web-added addresses), and weather (15 min, Open-Meteo). One failing job never stops the others.
 """
 import json
@@ -165,6 +165,12 @@ def build_jobs(env=os.environ.get) -> list:
         jobs.append(Job("nas", 60, lambda: sampler.sample(
             run_nas_command(env("NAS_HOST"), env("NAS_USER", "admin"), env("NAS_KEY", "/secrets/nas_collector"),
                             env("NAS_KNOWN_HOSTS", "/secrets/nas_known_hosts")), time.monotonic())))
+    if env("EERO_SESSION"):
+        from .collectors.eero import Eero
+        eero = Eero(env("EERO_SESSION"))   # one object: both jobs share the cached network URL
+        jobs.append(Job("eero", 300, eero.live))
+        jobs.append(Job("eero_usage", 3600, eero.daily_usage))
+        jobs.append(Job("eero_history", 86400, eero.history, daily_at="04:20", fresh_s=20 * 3600, timeout_s=120))
     if env("PORKBUN_API_KEY"):
         apps = Path(env("PORTAL_APPS_FILE", "/app/repo/apps.yaml"))
         jobs.append(Job("edge", 6 * 3600, lambda: check_edge(env("PORKBUN_API_KEY"), env("PORKBUN_API_SECRET_KEY"),

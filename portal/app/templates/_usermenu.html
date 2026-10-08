@@ -1,0 +1,101 @@
+{# Header right side, shared by dashboard / about / settings / profile. Needs `user`. #mutebell is the alert-mute bell (any signed-in user). #}
+<style>
+.umenu { display: flex; gap: 6px; align-items: center; margin: 0; font-size: 14px; color: var(--muted); position: relative; }
+.umenu .ib, .umenu .chip, .umenu .caret { background: none; border: 1px solid transparent; border-radius: 999px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font: inherit; }
+.umenu .ib { width: 34px; height: 34px; padding: 0; }
+.umenu .ib svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.umenu .chip { gap: 8px; padding: 3px 10px 3px 4px; font-weight: 700; color: var(--ink); border-color: var(--border); background: var(--panel); border-radius: 999px 0 0 999px; border-right: 0; }
+.umenu .chip i { width: 26px; height: 26px; border-radius: 50%; background: #4e6e58; color: #f1ece0; display: grid; place-items: center; font: 800 13px/1 "Overpass", sans-serif; font-style: normal; text-transform: uppercase; }
+.umenu .who { display: inline-flex; }
+.umenu .caret { width: 28px; height: 34px; padding: 0; border-color: var(--border); background: var(--panel); border-radius: 0 999px 999px 0; border-left-color: color-mix(in srgb, var(--muted) 35%, transparent); }
+.umenu .caret svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.umenu .ib:hover, .umenu .ib:focus-visible, .umenu .chip:hover, .umenu .caret:hover { border-color: var(--muted); color: var(--ink); }
+.umenu .drop { position: absolute; right: 0; top: 40px; z-index: 50; min-width: 170px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); padding: 6px; display: none; flex-direction: column; }
+.umenu .drop[data-open] { display: flex; }
+.umenu .drop a, .umenu .drop button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 8px 10px; color: var(--ink); text-decoration: none; font: 600 14px "Overpass", sans-serif; cursor: pointer; }
+.umenu .drop a:hover, .umenu .drop button:hover, .umenu .drop a:focus-visible, .umenu .drop button:focus-visible { background: color-mix(in srgb, var(--muted) 16%, transparent); }
+.umenu form { margin: 0; display: inline-flex; }
+.umenu #mutebell { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.umenu .pill { background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-weight: 700; font-size: 13px; color: var(--ink); white-space: nowrap; text-transform: none; }
+.umenu .pill[hidden] { display: none; }
+.umenu #mutebell.on .ib { color: var(--ink); }
+.umenu #mutebell .drop { right: 0; }
+.umenu #launcher { display: inline-flex; }
+.umenu #launcher .drop { right: 0; min-width: 210px; }
+.umenu a.app { display: flex; align-items: center; gap: 10px; }
+.umenu .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--muted); }
+.umenu .dot.up { background: var(--good); } .umenu .dot.down { background: var(--crit); }
+@media (max-width: 900px) { .umenu #launcher { position: static; } .umenu #launcher .drop { position: fixed; left: 0; right: 0; top: 64px; border-radius: 0 0 12px 12px; min-width: 0; } }
+@media (max-width: 900px) { .umenu .pill { display: none; } }
+@media (max-width: 900px) { .umenu .fold { display: none; } .umenu .chip span { display: none; } .umenu .chip { padding-right: 4px; } }
+</style>
+<nav class="umenu" aria-label="Account">
+  <a class="ib fold" href="/about" aria-label="About" title="About"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></a>
+  {% if user.is_admin %}<a class="ib fold" href="/settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></a>{% endif %}
+  {% set apps = launcher_apps(user) %}
+  {% if apps %}<span id="launcher">
+    <button class="ib" type="button" aria-label="Apps" aria-haspopup="menu" aria-expanded="false" title="Apps"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg></button>
+    <div class="drop" role="menu">
+      {% for a in apps %}<a class="app" role="menuitem" href="{{ a.url }}"><i class="dot {{ a.state }}" title="{{ {'up': 'Up', 'down': 'Down'}.get(a.state, 'Unknown') }}"></i>{{ a.name }}</a>{% endfor %}
+    </div>
+  </span>{% endif %}
+  {% set mute = mute_state() %}
+  <span id="mutebell"{% if mute.muted %} class="on"{% endif %}>
+    <span class="pill" role="status"{% if not mute.muted %} hidden{% endif %}>{{ mute.label }}</span>
+    <button class="ib" type="button" aria-label="Alert mute" aria-haspopup="menu" aria-expanded="false" title="Mute alert emails"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></button>
+    <div class="drop" role="menu">
+      <button role="menuitem" type="button" data-hours="1">Mute 1 h</button>
+      <button role="menuitem" type="button" data-hours="4">Mute 4 h</button>
+      <button role="menuitem" type="button" data-hours="24">Mute 24 h</button>
+      <button role="menuitem" type="button" data-hours="0">Unmute</button>
+    </div>
+  </span>
+  <span class="who">
+  <a class="chip" href="/profile" title="Your profile"><i aria-hidden="true">{{ user.username[:1] }}</i><span>{{ user.username }}</span></a>
+  <button class="caret" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false" title="Account menu"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+  </span>
+  <form class="fold" method="post" action="/logout"><button class="ib" type="submit" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24"><path d="M12 3v9M6.3 6.6a8 8 0 1 0 11.4 0"/></svg></button></form>
+  <div class="drop" role="menu">
+    <a role="menuitem" href="/profile">Profile</a>
+    <a role="menuitem" href="/incidents">All incidents</a>
+    <a role="menuitem" href="/maintenance">Maintenance</a>
+    <a role="menuitem" href="/about">About</a>
+    {% if user.is_admin %}<a role="menuitem" href="/settings">Settings</a>{% endif %}
+    <form method="post" action="/logout"><button role="menuitem" type="submit">Sign out</button></form>
+  </div>
+</nav>
+<script>
+(function () {
+  const nav = document.currentScript.previousElementSibling, caret = nav.querySelector(".caret"), drop = nav.querySelector(":scope > .drop");
+  let lclose = () => {};   // the launcher sets this, so the other two popovers can close it
+  const set = (open) => { drop.toggleAttribute("data-open", open); caret.setAttribute("aria-expanded", String(open)); };
+  caret.addEventListener("click", (e) => { e.stopPropagation(); lclose(); set(!drop.hasAttribute("data-open")); });
+  document.addEventListener("click", (e) => { if (!drop.contains(e.target)) set(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && drop.hasAttribute("data-open")) { set(false); caret.focus(); } });
+  // Mute bell: popover + POST /api/mute; window.setMuteBell lets the dashboard poll refresh it without a reload.
+  const bell = nav.querySelector("#mutebell"), bb = bell.querySelector(".ib"), bd = bell.querySelector(".drop"), pill = bell.querySelector(".pill");
+  const bset = (open) => { bd.toggleAttribute("data-open", open); bb.setAttribute("aria-expanded", String(open)); };
+  window.setMuteBell = (m) => { pill.textContent = m.label || ""; pill.hidden = !m.muted; bell.classList.toggle("on", !!m.muted); };
+  bb.addEventListener("click", (e) => { e.stopPropagation(); set(false); lclose(); bset(!bd.hasAttribute("data-open")); });
+  document.addEventListener("click", (e) => { if (!bd.contains(e.target)) bset(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && bd.hasAttribute("data-open")) { bset(false); bb.focus(); } });
+  const lau = nav.querySelector("#launcher");
+  if (lau) {
+    const lb = lau.querySelector(".ib"), ld = lau.querySelector(".drop");
+    const lset = (open) => { ld.toggleAttribute("data-open", open); lb.setAttribute("aria-expanded", String(open)); };
+    lclose = () => lset(false);
+    lb.addEventListener("click", (e) => { e.stopPropagation(); set(false); bset(false); lset(!ld.hasAttribute("data-open")); });
+    document.addEventListener("click", (e) => { if (!ld.contains(e.target)) lset(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && ld.hasAttribute("data-open")) { lset(false); lb.focus(); } });
+  }
+  bd.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-hours]");
+    if (!b) return;
+    bset(false);
+    try {
+      const r = await fetch("/api/mute", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hours: Number(b.dataset.hours) }) });
+      if (r.ok) window.setMuteBell(await r.json());
+    } catch (err) { /* offline: leave the bell as it was */ }
+  });
+})();
+</script>

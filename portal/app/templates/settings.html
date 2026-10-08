@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="day">
+<html lang="en" data-theme="{{ user_theme(user) }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script>try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight") document.documentElement.dataset.theme = "midnight"; } catch (e) {}</script>
+<script>try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight" || t === "day") document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <style>
 :root, [data-theme="day"] { --bg: #efece3; --panel: #ffffff; --border: #dcd7c9; --ink: #1b1d22; --muted: #646871; --bg-veil: rgba(239,236,227,.9);
   --good: #1f7a45; --warn: #9a5800; --crit: #c42b2b; --green: #4e6e58; --shadow: 0 1px 2px rgba(20,20,30,.06), 0 4px 16px rgba(20,20,30,.06); }
@@ -64,13 +64,15 @@ table.recips td { vertical-align: middle; }
 table.recips td:nth-child(n+2), table.recips th:nth-child(n+2) { width: 84px; }
 .muted { color: var(--muted); }
 @media (max-width: 640px) { .row { flex-wrap: wrap; } h1 { font-size: 34px; } }
+.edge-row.warn { background: color-mix(in srgb, var(--warn) 10%, transparent); }
+.edge-row.crit { background: color-mix(in srgb, var(--crit) 10%, transparent); }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="#F1ECE0" stroke="#1E1E1E" stroke-width="10"/><path fill="#1E1E1E" d="M26 23h14v21h20V23h14v54H60V56H40v21H26z"/></svg><a href="/">HAHBAH</a></div>
   <div class="spacer"></div>
-  <form class="user" method="post" action="/logout"><a class="linklike" href="/">← Dashboard</a> · {{ user.username }} · <button class="linklike" type="submit">Sign out</button></form>
+  {% include "_usermenu.html" %}
 </header>
 <main>
   <h1>Settings</h1>
@@ -160,6 +162,16 @@ table.recips td:nth-child(n+2), table.recips th:nth-child(n+2) { width: 84px; }
       <form method="post" action="/settings"><input type="hidden" name="action" value="test_email"><button class="btn" type="submit" {% if not outbox.on %}disabled{% endif %}>Send test</button></form></div>
   </div>
 
+  <div class="kicker" style="--k: #0b7b7e">Edge &amp; domain</div>
+  <div class="card">
+    {% for label, e in (("HTTPS certificate", edge.cert), ("Domain registration", edge.domain)) %}
+    <div class="row edge-row {{ e.tone if e else '' }}"><div class="what"><b>{{ label }}</b>
+      <span class="sub">{% if e %}Expires {{ e.expires }}{% if e.issuer %} · issued by {{ e.issuer }}{% else %} · registrar {{ e.registrar }}{% if e.auto_renew is not none %} · auto-renew {{ "on" if e.auto_renew else "OFF" }}{% endif %}{% endif %}{% else %}Not checked yet.{% endif %}</span></div>
+      {% if e %}<span class="pill {{ e.tone or 'good' }}">{{ e.days }} days left</span>{% endif %}</div>
+    {% endfor %}
+    <p class="muted" style="margin:6px 0 12px">Tinted Caution under 21 days and Danger under 7. This is a view only; the alerts and emails work as before.</p>
+  </div>
+
   <div class="kicker" style="--k: #c42b2b">Incidents · last 14 days</div>
   <div class="card scroll">
     {% if incidents %}
@@ -178,7 +190,7 @@ table.recips td:nth-child(n+2), table.recips th:nth-child(n+2) { width: 84px; }
   <div class="card scroll">
     <table><thead><tr><th>Source</th><th>Status</th></tr></thead><tbody>
       {% for src in sources %}<tr><td>{{ src.label }}</td><td class="mono">{{ src.cadence }}</td></tr>{% endfor %}
-      <tr><td>Running version</td><td class="mono">{{ deploy.commit or "?" }}{% if deploy.message %} · {{ deploy.message[:60] }}{% endif %}</td></tr>
+      <tr><td>Running version</td><td class="mono">{{ ("v" ~ deploy.version ~ " (" ~ deploy.commit ~ ")") if deploy.version else (deploy.commit or "?") }}{% if deploy.message %} · {{ deploy.message[:60] }}{% endif %}</td></tr>
     </tbody></table>
   </div>
 

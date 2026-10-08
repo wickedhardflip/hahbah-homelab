@@ -1,6 +1,9 @@
 """What each signed-in person may see. Non-admins get Plex counts and totals only, and no admin-only app links."""
 import copy
+import math
 import re
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 
 THUMB_PATH = re.compile(r"^/library/metadata/\d+/(thumb|art)/\d+$")
@@ -86,6 +89,8 @@ def _hide_commit(out: dict) -> None:
     dep = (out.get("edge") or {}).get("deploy")
     if dep and "message" in dep:
         dep["message"] = ""
+    for d in (dep or {}).get("history", []):
+        d["message"] = ""
     for a in out.get("alerts", []):
         if a.get("kind") == "deploy_failed":
             a["message"] = "The last deploy failed."
@@ -118,3 +123,73 @@ def snapshot_for(snap: dict, is_admin: bool, discreet_mode: bool = False) -> dic
 def apps_for(apps: list, is_admin: bool, discreet_mode: bool = False) -> list:
     apps = [a for a in apps if not (discreet_mode and a.get("id") == HIDDEN_APP)] if discreet_mode else apps
     return apps if is_admin else [a for a in apps if not a.get("admin")]
+
+
+# ---------- what changed (dashboard footer) + Edge & domain (Settings) ----------
+CERT_CAUTION_DAYS, CERT_DANGER_DAYS = 21, 7   # tint only; the real alerts live in merge.py
+
+
+def _when(iso) -> datetime | None:
+    try:
+        t = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
+
+
+def _ago(t: datetime | None, now: datetime) -> str:
+    if t is None:
+        return ""
+    m = max(0, round((now - t).total_seconds() / 60))
+    return "just now" if m < 1 else f"{m} min ago" if m < 60 else f"{round(m / 60)} h ago" if m < 1440 else f"{round(m / 1440)} d ago"
+
+
+def _hides_app(i: dict, app_id: str = HIDDEN_APP) -> bool:
+    text = (i.get("message") or "").lower()
+    return i.get("target") == app_id or "example app" in text or f"{app_id}." in text
+
+
+def scrub_incidents(incidents: list, show_subjects: bool, discreet_mode: bool = False) -> list:
+    """Incident text for people who may not see everything: incident text can quote a commit subject, and Discreet
+    mode drops the hidden app's incidents. Shared by the footer and the /incidents page."""
+    if not show_subjects:
+        incidents = [{**i, "message": "The last deploy failed." if i.get("kind") == "deploy_failed" else i.get("message", "")}
+                     for i in incidents]
+    return [i for i in incidents if not _hides_app(i)] if discreet_mode else incidents
+
+
+def duration(opened, closed) -> str:
+    """'' = still open."""
+    if closed is None or opened is None:
+        return ""
+    m = max(0, round((closed - opened).total_seconds() / 60))
+    return "under a minute" if m < 1 else f"{m} min" if m < 60 else f"{m // 60} h {m % 60} min" if m % 60 else f"{m // 60} h"
+
+
+def whatchanged(snap: dict, incidents: list, now: datetime, tz: str, show_subjects: bool, discreet_mode: bool = False) -> dict:
+    """The footer's numbers. `snap` must already have been through snapshot_for (it blanks commit subjects);
+    `show_subjects` is false for non-admins and Discreet mode, which also drops the hidden app's incidents."""
+    dep = (snap.get("edge") or {}).get("deploy") or {}
+    hist = dep.get("history") or ([{k: dep[k] for k in ("commit", "version", "message", "at", "ok")}] if dep.get("commit") else [])
+    deploys = [{"commit": d.get("commit", "?"), "version": d.get("version"), "ok": bool(d.get("ok")), "ago": _ago(_when(d.get("at")), now),
+                "message": d.get("message", "") if show_subjects else ""} for d in hist[:10]]
+    incidents = scrub_incidents(incidents, show_subjects, discreet_mode)
+    day = lambda t: t.astimezone(ZoneInfo(tz)).date()
+    return {"deployed": deploys[0] if deploys else None, "deploys": deploys,
+            "today": sum(1 for i in incidents if i.get("opened_at") and day(i["opened_at"]) == day(now)),
+            "incidents": [{"message": i["message"], "severity": i.get("severity"), "open": not i.get("closed_at"),
+                           "ago": _ago(i.get("opened_at"), now)} for i in incidents[:10]]}
+
+
+def edge_panel(edge: dict, now: datetime) -> dict:
+    """Certificate and domain expiry for Settings, from the snapshot's `edge` block. None = not read yet."""
+    def one(block, **extra):
+        t = _when((block or {}).get("expires")) if isinstance(block, dict) else None
+        if t is None:
+            return None
+        days = math.floor((t - now).total_seconds() / 86400)
+        return {"days": days, "expires": t.strftime("%b %d, %Y").replace(" 0", " "), **extra,
+                "tone": "crit" if days < CERT_DANGER_DAYS else "warn" if days < CERT_CAUTION_DAYS else ""}
+    cert, dom = (edge or {}).get("cert"), (edge or {}).get("domain")
+    return {"cert": one(cert, issuer=(cert or {}).get("issuer", "unknown")) if cert else None,
+            "domain": one(dom, registrar=(dom or {}).get("registrar", "unknown"), auto_renew=(dom or {}).get("auto_renew")) if dom else None}

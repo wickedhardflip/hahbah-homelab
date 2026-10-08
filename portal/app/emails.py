@@ -217,10 +217,14 @@ def digest(snap: dict, incidents: list, to: str, now: datetime, tz: str) -> byte
         for i in incidents:
             o = _local(i["opened_at"], tz)
             end = f"{_clock(_local(i['closed_at'], tz))}" if i.get("closed_at") else "still open"
+            if i.get("acked_by"):
+                end += f" · acknowledged by {i['acked_by']}"
+            if i.get("maint"):
+                end += " · in maintenance"
             items += (f'<tr><td style="padding:7px 0;border-top:1px solid #EEE9DD;font:800 13px/1.3 {FONT};color:{SEV_COLOR.get(i["severity"], WARN)};width:30%">'
                       f'{e(SEV_WORD.get(i["severity"], "Caution"))} · {e(THEME.get(i["kind"], i["kind"]))}</td>'
                       f'<td style="padding:7px 0;border-top:1px solid #EEE9DD;font:600 13px/1.4 {FONT};color:{INK}">{e(i["message"])}'
-                      f'<div style="font:600 12px/1.3 {MONO};color:{MUTED}">{_clock(o)} → {end}</div></td></tr>')
+                      f'<div style="font:600 12px/1.3 {MONO};color:{MUTED}">{_clock(o)} → {e(end)}</div></td></tr>')
             text.append(f"  {SEV_WORD.get(i['severity'], 'Caution')}: {i['message']} ({_clock(o)} -> {end})")
         body = f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{items}</table>'
     else:

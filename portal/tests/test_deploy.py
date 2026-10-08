@@ -42,3 +42,11 @@ def test_failed_build_and_firewall_lines_are_failures(tmp_path):
         p.write_text(f"2026-10-01T20:20:00-04:00 deployed abc1234 (ok)\n2026-10-01T20:25:00-04:00 {kind} def5678 (Broken thing)\n")
         d = last_deploy(p)
         assert d == {"commit": "def5678", "message": "Broken thing", "at": "2026-10-01T20:25:00-04:00", "ok": False}
+
+
+def test_version_is_read_when_present_and_optional(tmp_path):
+    log = tmp_path / "deploy.log"
+    log.write_text("2026-10-07T10:00:00-04:00 deployed 8f80cbc (old line)\n2026-10-07T11:00:00-04:00 deployed 1a2b3c4 v1.2 (new line)\n")
+    got = last_deploy(log, history=True)
+    assert got["version"] == "1.2" and got["commit"] == "1a2b3c4"
+    assert [h.get("version") for h in got["history"]] == ["1.2", None]

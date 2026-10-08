@@ -284,6 +284,39 @@ def apply_pings(doc: dict, snap: dict, nodes: dict, alerts: list) -> None:
             _alert(alerts, f"live-ping-{node_id}", "crit", node_id, "host_down", f"{n['label']} stopped answering ping.")
 
 
+def apply_eero(doc: dict, snap: dict, nodes: dict, alerts: list) -> None:
+    """Eero cloud (every 5 min): the gateway card gets device counts + mesh state, `snap["eero"]` feeds the NOC Wi-Fi
+    section. Alert: an info note when a new device joins (nodes drop in and out on this network, so no node alert)."""
+    n = nodes.get("router")
+    if n is None:
+        return
+    if not doc or not doc.get("data"):
+        n["meta"]["Devices"] = _why(doc)
+        return
+    data = doc["data"]
+    d, mesh = data["devices"], data["nodes"]
+    n["meta"]["Devices"] = f"{d['connected']} connected ({d['wired']} wired), {d['known']} known"
+    n["meta"]["Mesh"] = ", ".join(f"{m['name']} {m['status']}" for m in mesh)
+    snap.setdefault("eero", {})["live"] = {**data, "stale": not _usable(doc), "age_s": doc.get("age_s")}
+    if _usable(doc):
+        if d.get("new_24h"):
+            names = ", ".join(c["name"] for c in data["clients"] if c.get("new"))
+            _alert(alerts, "live-eero-new-device", "info", "router", "eero_new_device",
+                   f"{d['new_24h']} new device(s) joined the network in the last 24 h: {names}.")
+
+
+def apply_eero_usage(doc: dict, snap: dict) -> None:
+    """Eero cloud (hourly): usage, top devices, speed tests, profiles and settings for the NOC Wi-Fi section."""
+    if doc and doc.get("data"):
+        snap.setdefault("eero", {})["usage"] = {**doc["data"], "stale": not _usable(doc), "age_s": doc.get("age_s")}
+
+
+def apply_eero_history(doc: dict, snap: dict) -> None:
+    """Eero cloud (daily): 7/30 day per-device totals and 30 daily network totals for the NOC Wi-Fi section."""
+    if doc and doc.get("data"):
+        snap.setdefault("eero", {})["history"] = {**doc["data"], "stale": not _usable(doc), "age_s": doc.get("age_s")}
+
+
 # ---------- backups (collector, every 5 min) ----------
 
 def apply_backup(doc: dict, snap: dict, nodes: dict, alerts: list, tz: str) -> None:

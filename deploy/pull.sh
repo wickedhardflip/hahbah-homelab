@@ -68,4 +68,5 @@ if ! bash "$REPO/deploy/firewall.sh" "$REPO/hosts/$HOST_ID" >> "$LOG" 2>&1; then
 fi
 
 echo "$REMOTE" > "$STATE"
-echo "$(date -Is) deployed ${REMOTE:0:7} ($MSG)" >> "$LOG"
+VER=$(tr -d '[:space:]' < "$REPO/VERSION" 2>/dev/null || true)   # release number; Alex says when to bump the major
+echo "$(date -Is) deployed ${REMOTE:0:7}${VER:+ v$VER} ($MSG)" >> "$LOG"

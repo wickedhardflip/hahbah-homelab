@@ -4,7 +4,8 @@
   "use strict";
   const H = window.HLT, S = H.S, h = H.h, s = H.s;
   const root = document.getElementById("noc");
-  const acked = new Set();
+  const acked = new Set();      // fire-drill alarms only (this browser); real alarms are acked on the server
+  const isAcked = (a) => (a.drill ? acked.has(a.id) : H.quiet(a));   // acked or in maintenance: quiet row
   const hist = {};              // link id -> recent total Mbps samples, taken in this browser
   const HIST_N = 45, SAMPLE_MS = 2000;
   let drillAt = null, active = false, linksBox = null;
@@ -42,7 +43,7 @@
 
   function bar() {
     const c = tally();
-    const open = H.alerts().filter((a) => a.severity !== "info" && !acked.has(a.id)).length;
+    const open = H.alerts().filter((a) => a.severity !== "info" && !isAcked(a)).length;
     const sev = c.crit ? "crit" : c.warn ? "warn" : "good";
     const head = { crit: "Service outage", warn: "Degraded", good: "All systems operational" }[sev];
     const monitored = c.good + c.warn + c.crit;
@@ -122,8 +123,69 @@
       edgeCard("domain", "DNS records", dnsSt, [["App names", `${ok} of ${E.dns.expected.length} correct`], ["Via Eero", E.dns.via_eero_ok ? "resolves" : "blocked"],
         ["Issue", dnsAlert ? dnsAlert.message.split(",")[0] : "none"]]),
       edgeCard("caddy", "Front door + deploys", caddySt === "good" && E.deploy.ok ? "good" : caddySt === "good" ? "warn" : caddySt,
-        [["Caddy", WORD[caddySt]], ["Last deploy", `${E.deploy.commit} · ${E.deploy.ok ? "OK" : "FAILED"}`], ["At", new Date(E.deploy.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })]])
+        [["Caddy", WORD[caddySt]], ["Last deploy", `${E.deploy.version ? "v" + E.deploy.version : E.deploy.commit} · ${E.deploy.ok ? "OK" : "FAILED"}`], ["At", new Date(E.deploy.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })]])
     ]);
+  }
+
+  // ---------- Wi-Fi & devices (Eero cloud API) ----------
+  const fmtBytes = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : b >= 1e6 ? `${Math.round(b / 1e6)} MB` : `${Math.round((b || 0) / 1e3)} KB`);
+  const fmtUp = (sec) => (sec == null ? "—" : sec >= 86400 ? `${Math.floor(sec / 86400)} d` : `${Math.floor(sec / 3600)} h`);
+  const tbl = (heads, rows) => h("div", { class: "console" }, [h("table", {}, [
+    h("thead", {}, [h("tr", {}, heads.map((x) => h("th", { text: x })))]), h("tbody", {}, rows)])]);
+  const td = (v, cls) => h("td", { class: cls || "", text: v == null || v === "" ? "—" : String(v) });
+  function hourBars(down, up, w = 240, label = "Data use per hour, last 24 hours") {
+    const ht = 36, n = Math.max(down.length, 1), max = Math.max(...down, ...up, 1);
+    const svg = s("svg", { class: "spark", width: w, height: ht, viewBox: `0 0 ${w} ${ht}`, role: "img", "aria-label": label });
+    down.forEach((v, i) => svg.append(s("rect", { x: (i / n) * w + 1, y: ht - (v / max) * (ht - 2), width: w / n - 2, height: (v / max) * (ht - 2), fill: "var(--info)" })));
+    return svg;
+  }
+  function nodeCard(n) {
+    const st = n.status === "green" ? "good" : n.status ? "crit" : "unknown";
+    const el = edgeCard("router", `${n.name}${n.gateway ? " (gateway)" : ""}`, n.update_available && st === "good" ? "warn" : st,
+      [["Model", `${n.model} · v${n.firmware}`], ["Clients", n.clients], ["Mesh", n.wired ? "wired" : `${n.mesh_bars} of 5 bars`],
+       ["Up", fmtUp(n.uptime_s)], ["Firmware", n.update_available ? "update available" : "current"]]);
+    const kv = el.querySelector(".kvs");
+    Object.entries(n.channels || {}).forEach(([band, c]) => kv && el.insertBefore(
+      meter(band.includes("2_4") ? "2.4G" : band.includes("6") ? "6G" : "5G", clamp(c.utilization || 0), `ch ${c.channel} · ${c.utilization ?? 0}% busy`), kv));
+    return el;
+  }
+  function wifi() {
+    const E = S.eero || {}, L = E.live, U = E.usage, out = [];
+    const use = (id, key) => {   // total bytes for one device over a window: [down, up] or null
+      const m = key === "d24" ? U && U.devices : Hs && Hs[key];
+      return m && m[id] ? m[id] : null;
+    };
+    const Hs = E.history;
+    const bytes = (v) => (v ? `↓${fmtBytes(v[0])} ↑${fmtBytes(v[1])}` : "—");
+    if (L) {
+      out.push(h("div", { class: "noc-hosts" }, L.nodes.map(nodeCard)));
+      const tot = (c) => { const v = use(c.id, "d24"); return v ? v[0] + v[1] : -1; };
+      const rows = L.clients.slice().sort((a, b) => tot(b) - tot(a) || a.name.localeCompare(b.name)).map((c) =>
+        h("tr", {}, [h("td", {}, [h("b", { text: c.name }), c.new ? " NEW" : "", c.guest ? " (guest)" : "", c.paused ? " (paused)" : ""]), td(c.node),
+          td(c.wired ? "wired" : [c.band, c.signal_dbm].filter(Boolean).join(" ")), td(c.ip),
+          td(bytes(use(c.id, "d24")), "num"), td(bytes(use(c.id, "d7")), "num"), td(bytes(use(c.id, "d30")), "num")]));
+      out.push(h("div", { class: "noc-note", text: `${L.devices.connected} connected · ${L.devices.wired} wired · ${L.devices.known} known · data use is the total over each window, busiest first${L.stale ? " · stale" : ""}` }));
+      out.push(tbl(["Device", "Node", "Link", "IP", "24 h", "7 days", "30 days"], rows));
+    }
+    if (Hs && Hs.daily && Hs.daily.length) {
+      const dn = Hs.daily.map((d) => d.down + d.up), sum = dn.reduce((a, b) => a + b, 0);
+      out.push(h("div", { class: "noc-note", text: `Whole network, last ${Hs.daily.length} days (daily total, down + up): ${fmtBytes(sum)} · busiest day ${fmtBytes(Math.max(...dn))}${Hs.stale ? " · stale" : ""}` }),
+        h("div", {}, [hourBars(dn, [], 300, "Data use per day, last 30 days")]));
+    }
+    if (U) {
+      const u = U.usage_24h;
+      out.push(h("div", { class: "noc-note", text: `Last 24 h, per hour: ↓${fmtBytes(u.down_bytes)} ↑${fmtBytes(u.up_bytes)}${U.stale ? " · stale" : ""}` }), h("div", {}, [hourBars(u.hourly_down, u.hourly_up)]));
+      const kv = h("div", { class: "kvs" });
+      [["Profiles", U.profiles.map((p) => `${p.name} (${p.devices})${p.paused ? " paused" : ""}`).join(", ")],
+       ["Guest network", U.guest.enabled ? `on (${U.guest.name})` : "off"],
+       ["DHCP reservations", U.reservations.map((r) => `${r.name || "?"} ${r.ip}`).join(", ") || "none"],
+       ["Port forwards", U.forwards.map((f) => `${f.name || "?"} ${f.port}${f.enabled ? "" : " (off)"}`).join(", ") || "none"],
+       ["Firmware", U.updates.has_update ? `update to ${U.updates.target} pending` : "up to date"],
+       ["Eero speed tests", U.speed_tests.slice(0, 5).map((t) => Math.round(t.down_mbps)).join(" · ") + " Mbps down (newest first)"]]
+        .forEach(([k, v]) => kv.append(h("div", {}, [`${k} `, h("b", { text: v })])));
+      out.push(h("div", { class: "hostp good" }, [h("div", { class: "hd" }, ["Network settings"]), kv]));
+    }
+    return h("div", { class: "noc-wifi" }, out.length ? out : [h("div", { class: "noc-note", text: "The Eero cloud API hasn't reported yet." })]);
   }
 
   // ---------- services ----------
@@ -177,7 +239,7 @@
     const tb = h("tbody");
     list.forEach((a) => {
       const raised = a.drill && drillAt ? drillAt : H.tsDate;
-      const isAck = acked.has(a.id);
+      const isAck = isAcked(a);
       const tr = h("tr", { class: a.severity + (isAck ? " acked" : ""), tabindex: 0,
         onclick: () => H.select(a.target), onkeydown: (e) => { if (e.key === "Enter") H.select(a.target); } }, [
         h("td", {}, [h("span", { class: "pill " + a.severity, text: SEV_WORD[a.severity] })]),
@@ -185,7 +247,7 @@
         h("td", {}, [h("b", { text: H.targetLabel(a.target) })]),
         h("td", { text: (H.THEME[a.kind] || { plain: a.kind }).plain + (a.drill ? " (drill)" : "") }),
         h("td", { text: a.message }),
-        h("td", {}, [a.severity === "info" ? null : h("button", { class: "ack", text: isAck ? "Unack" : "Ack",
+        h("td", {}, [a.severity === "info" ? null : !a.drill ? H.ackControl(a) : h("button", { class: "ack", text: isAck ? "Unack" : "Ack",
           "aria-label": `${isAck ? "Unacknowledge" : "Acknowledge"} alarm on ${H.targetLabel(a.target)}`,
           onclick: (e) => { e.stopPropagation(); if (isAck) acked.delete(a.id); else acked.add(a.id); render(); } })])
       ]);
@@ -240,25 +302,27 @@
   }
 
   // ---------- page ----------
-  function section(title, note, body) {
-    return h("section", { class: "noc-sec" }, [h("h2", {}, [title, note ? h("small", { text: note }) : null]), body]);
+  function section(title, note, body, key) {   // key = a section the viewer can collapse (remembered in this browser)
+    const closed = key ? H.pref.get("noc." + key, false) : false;
+    const head = key ? h("button", { class: "noc-toggle", type: "button", "aria-expanded": String(!closed),
+      onclick: () => { H.pref.set("noc." + key, !closed); render(); } }, [`${closed ? "▸" : "▾"} ${title}`]) : title;
+    return h("section", { class: "noc-sec" }, [h("h2", {}, [head, note ? h("small", { text: note }) : null]), closed ? null : body]);
   }
   function render() {
     if (!active) return;
     H.clear(root);
     root.append(bar());
+    root.append(section("Alarm console", `${H.alerts().length} active`, consoleBox(), "alarms"));
     root.append(section("Hosts", null, h("div", { class: "noc-hosts" }, HOST_ORDER.map((id) => H.nodes[id]).filter(Boolean).map(hostPanel))));
     root.append(section("Edge & domain", "hahbah.com", edge()));
     root.append(section("Services", null, services()));
     linksBox = h("div");
     linksBox.append(interfaces());
-    root.append(h("div", { class: "noc-bottom" }, [
-      section("Alarm console", `${H.alerts().length} active`, consoleBox()),
-      section("Interfaces", H.state.demo ? "simulated" : null, h("div", {}, [linksBox,
-        h("div", { class: "noc-note", text: H.state.demo
-          ? "Demo traffic is on: these rates are simulated."
-          : "Only Central's and the NAS's wired ports are measured today. The trend is sampled in this browser; the portal will serve real history." })]))
-    ]));
+    root.append(section("Interfaces", H.state.demo ? "simulated" : null, h("div", {}, [linksBox,
+      h("div", { class: "noc-note", text: H.state.demo
+        ? "Demo traffic is on: these rates are simulated."
+        : "Only Central's and the NAS's wired ports are measured today. The trend is sampled in this browser; the portal will serve real history." })])));
+    if (S.eero) root.append(section("Wi-Fi & devices", "Eero cloud", wifi()));
   }
 
   H.listeners.push(() => {

@@ -5,6 +5,12 @@ single blip is never an incident. Only Danger is emailed. If it comes back withi
 reopens quietly; the all-clear goes out only after RECOVERY with no relapse, so the last email is never a false "all clear".
 An incident whose source stopped reporting (station grey, or its collector file stale) stays open: no news is not good news.
 Emails are queued only after the database commit, so a failed save never resends them.
+Acknowledging an open incident (any signed-in user, from a card) skips its Danger email if not sent yet and its all-clear;
+Caution->Danger drops the ack so the Danger email still goes out. A quiet reopen is the same incident, ack included.
+A maintenance window (start <= now < end, not cancelled; target = the incident key or "*") holds Danger emails and
+all-clears for what it covers, judged at each check by the recorder's clock. Held is not skipped: `emailed` stays False
+like under a mute, so an incident still open when the window ends is emailed then; one that opened and closed inside
+it was never emailed, so it gets no all-clear either.
 """
 import logging
 from datetime import datetime, timedelta, timezone
@@ -12,7 +18,7 @@ from zoneinfo import ZoneInfo
 
 from . import emails, settingsstore
 from .mailer import MAX_WEB, PICK_HEADER, clean_web, effective, parse_recipients, valid_address, write_message, write_web_recipients
-from .models import DailyMetric, Incident
+from .models import DailyMetric, Incident, MaintenanceWindow, User, UserPrefs
 
 log = logging.getLogger("portal")
 RECOVERY = timedelta(minutes=10)
@@ -21,8 +27,25 @@ KIND_SOURCE = {"mount_missing": "mounts", "smart_warn": "smart", "slow_speed": "
                "app_down": "health", "cert_expiring": "cert"}
 KEEP_DAYS = 30
 OPT_OUT = {"danger": "alerts_off", "clear": "alerts_off", "digest": "report_off"}   # the test email goes to everyone
+PREF = {"danger": "instant", "clear": "instant", "digest": "digest"}                 # the matching Profile switch (UserPrefs)
 naive = lambda d: d.astimezone(timezone.utc).replace(tzinfo=None)   # the DB stores naive UTC
 aware = lambda d: d.replace(tzinfo=timezone.utc) if d is not None and d.tzinfo is None else d
+
+
+def user_addresses(username: str, google_email: str | None) -> set:
+    """How a portal user maps to a recipient: their linked Google email, and their username if it is itself an email
+    address (so it matches a Settings > Alerts entry). A user with neither has no address and their prefs change nothing."""
+    name = (username or "").strip().lower()
+    return {a for a in ((google_email or "").strip().lower(), name) if valid_address(a)}
+
+
+def _pref_off(db, field: str) -> set:
+    """Addresses whose users switched `field` off on their Profile, minus any another user with that address still wants."""
+    want, off = set(), set()
+    for name, google, on in db.query(User.username, User.google_email, getattr(UserPrefs, field)).outerjoin(
+            UserPrefs, UserPrefs.user_id == User.id):
+        (want if on is not False else off).update(user_addresses(name, google))   # no row = the default (on)
+    return off - want
 
 
 class Recorder:
@@ -163,6 +186,103 @@ class Recorder:
                     .order_by(Incident.opened_at.desc()).limit(limit).all())
             return [self._dict(i) for i in rows]
 
+    def history(self, severity: str = "", state: str = "", page: int = 1, per: int = 25, prep=lambda rows: rows) -> tuple:
+        """(rows for this page, total) of every incident, newest first. `prep` scrubs/drops rows BEFORE paging."""
+        with self.SL() as db:
+            q = db.query(Incident)
+            if severity in ("crit", "warn"):
+                q = q.filter(Incident.severity == severity)
+            if state in ("open", "closed"):
+                q = q.filter(Incident.closed_at.is_(None) if state == "open" else Incident.closed_at.is_not(None))
+            rows = prep([self._dict(i) for i in q.order_by(Incident.opened_at.desc(), Incident.id.desc()).all()])
+        return rows[(page - 1) * per:page * per], len(rows)
+
+    # ----- Maintenance windows (any signed-in user) -----
+    def add_window(self, target: str, start: datetime, end: datetime, note: str, by: str) -> int:
+        with self.SL() as db:
+            w = MaintenanceWindow(target=target, start=naive(start), end=naive(end), note=note, created_by=by)
+            db.add(w)
+            db.commit()
+            return w.id
+
+    def cancel_window(self, wid: int) -> bool:
+        with self.SL() as db:
+            w = db.get(MaintenanceWindow, wid)
+            if w is None or w.cancelled:
+                return False
+            w.cancelled = True
+            db.commit()
+            return True
+
+    def windows(self) -> list:
+        """Every window, newest start first, with `state` active | upcoming | past (cancelled counts as past)."""
+        now = naive(self.now())
+        with self.SL() as db:
+            rows = db.query(MaintenanceWindow).order_by(MaintenanceWindow.start.desc(), MaintenanceWindow.id.desc()).all()
+            return [{"id": w.id, "target": w.target, "start": aware(w.start), "end": aware(w.end), "note": w.note,
+                     "created_by": w.created_by, "cancelled": w.cancelled,
+                     "state": "past" if w.cancelled or w.end <= now else "active" if w.start <= now else "upcoming"}
+                    for w in rows]
+
+    @staticmethod
+    def _active(db, now: datetime) -> dict:
+        """target -> latest end of the windows active right now."""
+        out: dict = {}
+        for t, end in db.query(MaintenanceWindow.target, MaintenanceWindow.end).filter(
+                MaintenanceWindow.cancelled.is_(False), MaintenanceWindow.start <= naive(now), MaintenanceWindow.end > naive(now)):
+            out[t] = max(out.get(t, end), end)
+        return out
+
+    def active_windows(self) -> dict:
+        with self.SL() as db:
+            return {t: aware(e) for t, e in self._active(db, self.now()).items()}
+
+    @staticmethod
+    def held_until(active: dict, key: str):
+        """When the maintenance covering `key` ends (None = not in maintenance)."""
+        ends = [e for t, e in active.items() if t in ("*", key)]
+        return max(ends) if ends else None
+
+    def mark_maintenance(self, incidents: list) -> list:
+        """The digest's view: open incidents covered by an active window get `maint`."""
+        active = self.active_windows()
+        return [{**i, "maint": not i.get("closed_at") and self.held_until(active, i["key"]) is not None} for i in incidents]
+
+    # ----- Acknowledge (a card's button; only OPEN incidents, so an alert in its first check has nothing to ack yet) -----
+    def open_acks(self) -> dict:
+        """key -> {acked_by, acked_at} for every open incident; a key missing here has no incident (no button)."""
+        with self.SL() as db:
+            return {i.key: {"acked_by": i.acked_by, "acked_at": aware(i.acked_at)}
+                    for i in db.query(Incident).filter(Incident.closed_at.is_(None)).all()}
+
+    def ack(self, key: str, by: str) -> bool:
+        """False = no open incident with that key. Not yet emailed: mark it emailed without sending, so an unmute later
+        doesn't send it. The ack stays on the row after it closes, which is what suppresses the all-clear."""
+        with self.SL() as db:
+            inc = db.query(Incident).filter(Incident.key == key, Incident.closed_at.is_(None)).first()
+            if inc is None:
+                return False
+            if not inc.acked_by:   # conditional, so an email the recorder queued a moment ago isn't mistaken for a skipped one
+                skipped = db.query(Incident).filter(Incident.id == inc.id, Incident.emailed.is_(False)).update(
+                    {"emailed": True, "ack_skipped": True}, synchronize_session=False)
+                inc.ack_skipped = bool(skipped)
+            inc.acked_by, inc.acked_at = by, naive(self.now())
+            db.commit()
+            return True
+
+    def unack(self, key: str) -> bool:
+        """Undo sends nothing itself: `emailed` goes back to how the ack found it, so only an un-emailed open Danger
+        (one the ack skipped) gets its email on the next check."""
+        with self.SL() as db:
+            inc = db.query(Incident).filter(Incident.key == key, Incident.closed_at.is_(None)).first()
+            if inc is None:
+                return False
+            if inc.ack_skipped:
+                inc.emailed = False
+            inc.acked_by, inc.acked_at, inc.ack_skipped = None, None, False
+            db.commit()
+            return True
+
     def send_test(self) -> bool:
         if not self.to or not self.outbox:
             return False
@@ -173,7 +293,8 @@ class Recorder:
     @staticmethod
     def _dict(i: Incident) -> dict:
         return {"key": i.key, "kind": i.kind, "target": i.target, "severity": i.severity, "message": i.message,
-                "opened_at": aware(i.opened_at), "closed_at": aware(i.closed_at), "emailed": i.emailed}
+                "opened_at": aware(i.opened_at), "closed_at": aware(i.closed_at), "emailed": i.emailed,
+                "acked_by": i.acked_by, "acked_at": aware(i.acked_at)}
 
     def _flush(self, out: list) -> None:
         for raw, prefix in out:
@@ -186,7 +307,16 @@ class Recorder:
             return self.recipients
         with self.SL() as db:
             off = set(parse_recipients(settingsstore.get(db, key)))
-        return tuple(a for a in self.recipients if a not in off)
+            unwanted = _pref_off(db, PREF[prefix])
+        allowed = tuple(a for a in self.recipients if a not in off)
+        out = tuple(a for a in allowed if a not in unwanted)
+        if allowed and not out:   # Profile prefs only subtract, and never silently down to nobody
+            if prefix == "digest":
+                log.warning("every digest recipient switched the digest off in their profile; not sending it")
+                return out
+            log.warning("every recipient switched %s emails off in their profile; sending to the Settings list anyway", prefix)
+            return allowed
+        return out
 
     def _send(self, raw: bytes, prefix: str, to: tuple | None = None) -> None:
         """`to` (notices) ignores the Alerts/Report switches but still only goes to allowlisted addresses."""
@@ -234,6 +364,8 @@ class Recorder:
             if inc is not None:
                 if a["severity"] == "crit" and inc.severity != "crit":   # Caution became Danger
                     inc.severity, inc.message = "crit", a["message"]
+                    if inc.acked_by:   # an ack of the Caution doesn't cover the Danger: drop it, the Danger email goes out
+                        inc.acked_by, inc.acked_at, inc.ack_skipped, inc.emailed = None, None, False, False
                 continue
             self.seen[key] = self.seen.get(key, 0) + 1
             if self.seen[key] >= 2:
@@ -254,15 +386,25 @@ class Recorder:
                 inc.closed_at = naive(now)
         db.flush()
         on = self._alerts_on(st, now)
+        active = self._active(db, now)
+        held = lambda key: self.held_until(active, key) is not None
         if on:   # every open Danger not yet emailed: new ones, Caution→Danger, and ones that opened while muted
             for inc in db.query(Incident).filter(Incident.closed_at.is_(None), Incident.severity == "crit",
-                                                 Incident.emailed.is_(False)).all():
-                inc.emailed = True
-                out.append((emails.alert(self._dict(inc), self.to, now, self.tz), "danger"))
+                                                 Incident.emailed.is_(False), Incident.acked_by.is_(None)).all():
+                if held(inc.key):   # in maintenance: `emailed` stays False, so it goes out once the window ends
+                    continue
+                # claim it with a conditional UPDATE: an ack that lands between the read and here wins, so no email is queued
+                if db.query(Incident).filter(Incident.id == inc.id, Incident.emailed.is_(False), Incident.acked_by.is_(None)
+                                             ).update({"emailed": True}, synchronize_session=False):
+                    out.append((emails.alert(self._dict(inc), self.to, now, self.tz), "danger"))
         for inc in db.query(Incident).filter(Incident.closed_at.is_not(None), Incident.clear_sent.is_(False),
                                              Incident.closed_at <= naive(now - RECOVERY)).all():
+            due = inc.emailed and on and not inc.acked_by   # somebody acknowledged it: they know, no all-clear
+            if due and held(inc.key):   # emailed before the window, closed inside it: the all-clear waits for the end
+                continue
             inc.clear_sent = True
-            if inc.emailed and on:
+            # a held all-clear for a key with a NEW open incident would be a false all-clear: drop it
+            if due and not db.query(Incident.id).filter(Incident.key == inc.key, Incident.closed_at.is_(None)).first():
                 out.append((emails.alert(self._dict(inc), self.to, now, self.tz, cleared=True), "clear"))
 
     def _metrics(self, db, snap: dict, now: datetime) -> None:
@@ -288,5 +430,5 @@ class Recorder:
         hh, mm = map(int, (st.get("digest_time") or "06:30").split(":"))
         if st.get("digest_last_sent") == today or (local.hour, local.minute) < (hh, mm):
             return
-        out.append((emails.digest(snap, self.recent_incidents(24), self.to, now, self.tz), "digest"))
+        out.append((emails.digest(snap, self.mark_maintenance(self.recent_incidents(24)), self.to, now, self.tz), "digest"))
         settingsstore.put(db, "digest_last_sent", today)

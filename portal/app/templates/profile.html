@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" data-theme="{{ user_theme(user) }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile · HAHBAH</title>
+<link rel="icon" href="/static/site/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/site/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/site/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight" || t === "day") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<style>
+:root, [data-theme="day"] { --bg: #efece3; --panel: #ffffff; --border: #dcd7c9; --ink: #1b1d22; --muted: #646871; --bg-veil: rgba(239,236,227,.9);
+  --good: #1f7a45; --warn: #9a5800; --crit: #c42b2b; --green: #4e6e58; --shadow: 0 1px 2px rgba(20,20,30,.06), 0 4px 16px rgba(20,20,30,.06); }
+[data-theme="midnight"] { --bg: #070b16; --panel: #0f1528; --border: #222c4a; --ink: #e9edf6; --muted: #8e97ad; --bg-veil: rgba(7,11,22,.9);
+  --good: #3ccf7e; --warn: #ffb547; --crit: #ff5d57; --green: #4e6e58; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.35); }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 "Overpass", system-ui, sans-serif; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; filter: saturate(.7);
+  background: linear-gradient(var(--bg-veil), var(--bg-veil)), url("/static/site/station-1920.jpg") center 40% / cover no-repeat; }
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px 8px; }
+.brand { --brand-ink: #f1ece0; display: flex; align-items: center; gap: 10px; background: #4e6e58; color: var(--brand-ink); padding: 7px 14px 12px 8px; border-radius: 6px; border: 3px solid #2a2a2a; box-shadow: inset 0 -5px 0 #f1ece0; font: 700 22px/1 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.brand svg { width: 30px; height: 30px; }
+.brand a { color: inherit; text-decoration: none; padding-top: 4px; }
+.spacer { flex: 1; }
+main { max-width: 760px; margin: 0 auto; padding: 8px 20px 60px; }
+h1 { font: 900 44px/1.05 "Overpass", sans-serif; letter-spacing: -.02em; margin: 14px 0 6px; }
+.kicker { font: 700 12px/1 "JetBrains Mono", monospace; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 10px; margin: 34px 0 10px; }
+.kicker::before { content: ""; width: 30px; height: 6px; border-radius: 3px; background: var(--k, var(--green)); }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 6px 20px; }
+.row { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid var(--border); }
+.row:first-child { border-top: 0; }
+.row .what { flex: 1; min-width: 0; }
+.row b { display: block; font-size: 16px; }
+.row span.sub { display: block; color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+label.f { display: block; padding: 8px 0; font-weight: 700; }
+input[type=password] { display: block; margin-top: 4px; width: 100%; max-width: 340px; font: 600 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; background: var(--panel); color: var(--ink); }
+.btn { font: 700 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; background: var(--panel); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.notice { margin: 14px 0 0; padding: 12px 16px; border-radius: 10px; background: color-mix(in srgb, var(--good) 14%, var(--panel)); border: 1px solid color-mix(in srgb, var(--good) 40%, var(--border)); font-weight: 700; }
+.notice.bad { background: color-mix(in srgb, var(--crit) 12%, var(--panel)); border-color: color-mix(in srgb, var(--crit) 40%, var(--border)); }
+form.pw, form.prefs { padding: 8px 0 14px; }
+label.tg { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; font-weight: 700; cursor: pointer; }
+label.tg input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--green); flex: none; }
+label.tg span.sub { display: block; font-weight: 400; color: var(--muted); font-size: 13.5px; }
+select { display: block; margin-top: 4px; font: 600 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; background: var(--panel); color: var(--ink); }
+form .hint { color: var(--muted); font-size: 13.5px; }
+p.hint, span.hint.blk { display: block; margin: 6px 0 10px; }
+@media (max-width: 640px) { .row { flex-wrap: wrap; } h1 { font-size: 34px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="#F1ECE0" stroke="#1E1E1E" stroke-width="10"/><path fill="#1E1E1E" d="M26 23h14v21h20V23h14v54H60V56H40v21H26z"/></svg><a href="/">HAHBAH</a></div>
+  <div class="spacer"></div>
+  {% include "_usermenu.html" %}
+</header>
+<main>
+  <h1>Profile</h1>
+  {% if note %}<div class="notice{% if bad %} bad{% endif %}" role="status">{{ note }}</div>{% endif %}
+
+  <div class="kicker">Account</div>
+  <div class="card">
+    <div class="row"><div class="what"><b>{{ user.username }}</b><span class="sub">{{ "Admin" if user.is_admin else "Member" }}</span></div></div>
+    <div class="row"><div class="what"><b>Member since</b><span class="sub">{{ since }}</span></div></div>
+    <div class="row"><div class="what"><b>Sign-in methods</b><span class="sub">Password{% if user.google_email %} · Google{% endif %}</span></div></div>
+    <div class="row"><div class="what"><b>Google account</b>
+      <span class="sub">{% if user.google_email %}{{ user.google_email }}{% else %}Not linked. An admin links Google accounts in Settings.{% endif %}</span></div>
+      {% if user.google_email %}<form method="post" action="/profile/google/unlink"><input type="password" name="current" placeholder="Current password" autocomplete="current-password" required aria-label="Current password"> <button class="btn" type="submit">Unlink</button></form>{% endif %}</div>
+  </div>
+
+  <div class="kicker">Notifications</div>
+  <div class="card">
+    <form class="prefs" method="post" action="/profile/prefs">
+      <p class="hint">{% if emails %}For {{ emails | join(", ") }}, when it is on the Settings &gt; Alerts list. Switching off only stops emails to you; if nobody is left, Danger alerts still go out.{% else %}Your account has no email address (link Google, or ask an admin), so these switches don't change anything yet.{% endif %}</p>
+      <label class="tg"><input type="checkbox" name="digest" value="1"{% if prefs.digest %} checked{% endif %}><span>Daily digest<span class="sub">The morning report.</span></span></label>
+      <label class="tg"><input type="checkbox" name="instant" value="1"{% if prefs.instant %} checked{% endif %}><span>Instant alerts<span class="sub">Danger emails and their all-clears.</span></span></label>
+      <label class="f">Default theme
+        <select name="theme">
+          <option value=""{% if not prefs.theme %} selected{% endif %}>Day (standard)</option>
+          <option value="day"{% if prefs.theme == "day" %} selected{% endif %}>Day</option>
+          <option value="midnight"{% if prefs.theme == "midnight" %} selected{% endif %}>Midnight</option>
+        </select></label>
+      <span class="hint blk">Used where this browser hasn't picked Day or Midnight on the dashboard.</span>
+      <button class="btn primary" type="submit">Save preferences</button>
+    </form>
+  </div>
+
+  <div class="kicker">Change password</div>
+  <div class="card">
+    <form class="pw" method="post" action="/profile/password">
+      <label class="f">Current password<input type="password" name="current" autocomplete="current-password" required></label>
+      <label class="f">New password ({{ min_length }}+ characters)<input type="password" name="new" autocomplete="new-password" minlength="{{ min_length }}" required></label>
+      <label class="f">New password again<input type="password" name="confirm" autocomplete="new-password" minlength="{{ min_length }}" required></label>
+      <button class="btn primary" type="submit">Change password</button>
+      <span class="hint"> Signs you out everywhere else.</span>
+    </form>
+  </div>
+</main>
+</body>
+</html>

@@ -54,3 +54,8 @@ def migrate(engine) -> None:
     if "incidents" in tables and "clear_sent" not in {c["name"] for c in inspect(engine).get_columns("incidents")}:
         with engine.begin() as conn:   # existing rows: treat their all-clears as settled
             conn.execute(text("ALTER TABLE incidents ADD COLUMN clear_sent BOOLEAN NOT NULL DEFAULT 1"))
+    if "incidents" in tables and "acked_by" not in {c["name"] for c in inspect(engine).get_columns("incidents")}:
+        with engine.begin() as conn:   # Acknowledge: nothing is acknowledged yet
+            conn.execute(text("ALTER TABLE incidents ADD COLUMN acked_by VARCHAR(50)"))
+            conn.execute(text("ALTER TABLE incidents ADD COLUMN acked_at DATETIME"))
+            conn.execute(text("ALTER TABLE incidents ADD COLUMN ack_skipped BOOLEAN NOT NULL DEFAULT 0"))

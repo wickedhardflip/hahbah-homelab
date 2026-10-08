@@ -71,6 +71,8 @@ services:
       disable: true                           # the image's check probes the portal's web port, which this doesn't run
     env_file:
       - /srv/homelab/secrets/porkbun.env      # PORKBUN_API_KEY / PORKBUN_API_SECRET_KEY: read-only calls only
+      - path: /srv/homelab/secrets/eero.env   # EERO_SESSION: Eero cloud API token (from tools/eero_login.py); read-only GETs
+        required: false
       - path: /srv/homelab/secrets/alerts.env # ALERT_EMAIL_TO: the only address the mailer will send to
         required: false
     environment:
@@ -97,7 +99,7 @@ services:
       - ../..:/app/repo:ro
       - /srv/homelab/secrets/nas_collector:/secrets/nas_collector:ro
       - /srv/homelab/secrets/nas_known_hosts:/secrets/nas_known_hosts:ro
-      - /opt/replexon/data:/replexon:ro
+      - /srv/homelab/replexon/data:/replexon:ro      # RePlexOn 2 (container) keeps replexon.db in this host folder
       - /mnt:/host/mnt:ro,rslave                  # the NFS mounts, read-only; rslave so mounts made later show up too
       - /srv/homelab/outbox:/outbox
       - /srv/homelab/weather:/weather:ro

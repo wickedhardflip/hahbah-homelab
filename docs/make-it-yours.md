@@ -23,6 +23,7 @@ None of these is needed to see the portal work. Leave the matching setting unset
 | NFS mount checks | `MOUNTS=/mnt/a,/mnt/b` | Mount stations and alarms |
 | Pings | `PING_TARGETS=name=ip,...` | Router, NAS and host reachability |
 | Domain and DNS checks | `secrets/porkbun.env` | Expiry, auto-renew, DNS drift |
+| Eero Wi-Fi and devices | `secrets/eero.env` (token from `tools/eero_login.py`) | Nodes, devices, 24 h / 7 d / 30 d data use. Read-only, uses the unofficial Eero app API |
 | Router DNS check | `EERO_DNS` (any resolver that should answer your names) | "Resolves through the router" |
 | Plex | A Plex app line in `apps.yaml` | App health. Activity stats need Tautulli. |
 | Tautulli | `secrets/tautulli.env` | "N watching", history, newsletter |
