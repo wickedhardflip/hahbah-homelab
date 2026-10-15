@@ -1,0 +1,2 @@
+# Not secret. UDP port the Eero forwards to this host for WireGuard (and the ufw rule in ../firewall.conf).
+WG_PORT=51820

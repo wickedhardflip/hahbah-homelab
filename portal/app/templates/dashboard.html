@@ -446,7 +446,10 @@ body[data-view="noc"] .noc { display: block; }
     dns_drift:     { t: "Wrong platform",  plain: "DNS record missing or wrong" },
     deploy_failed: { t: "Signal failure",  plain: "Last deploy failed" },
     raid_degraded: { t: "Single tracking", plain: "NAS RAID degraded" },
-    backup_stale:  { t: "Missed connection", plain: "Backup overdue or failed" }
+    backup_stale:  { t: "Missed connection", plain: "Backup overdue or failed" },
+    vpn_down:      { t: "Tunnel closed",   plain: "VPN tunnel down or not reporting" },
+    vpn_knocks:    { t: "Trespassers",     plain: "Many unknown VPN connection attempts" },
+    ddns_drift:    { t: "Wrong platform",  plain: "VPN address (DDNS) out of date" }
   };
   const theme = (kind) => THEME[kind] || { t: kind, plain: kind };   // an unknown kind must never break rendering
   const SEV_RANK = { crit: 3, warn: 2, info: 1, good: 0, unknown: 0 };

@@ -185,7 +185,6 @@
    "id": "pc",
    "kind": "pc",
    "label": "Windows PC",
-   "sublabel": "workstation",
    "tier": 1,
    "status": "unknown",
    "meta": {
@@ -224,6 +223,18 @@
     "Certificate": "*.example.com · Let's Encrypt",
     "Routes": "home.example.com (test page)",
     "Deploys": "Pulled from GitHub main every 5 min"
+   }
+  },
+  {
+   "id": "ticket",
+   "kind": "gateway",
+   "label": "Ticket Gate",
+   "tier": 1,
+   "status": "unknown",
+   "meta": {
+    "Role": "Private door for Alex's phone: this portal and the apps, nothing else",
+    "Runs as": "WireGuard (wg0) on Central",
+    "Reaches": "Central (192.168.1.5) only"
    }
   },
   {
@@ -500,6 +511,16 @@
    }
   },
   {
+   "id": "vpn1",
+   "a": "router",
+   "b": "ticket",
+   "kind": "edge",
+   "status": "unknown",
+   "meta": {
+    "What": "One UDP port forward on the Eero leads to WireGuard on Central"
+   }
+  },
+  {
    "id": "app_plex",
    "a": "central",
    "b": "plex",
@@ -677,11 +698,12 @@
    {
     "id": "red",
     "name": "Red Line",
-    "what": "Your domain, the internet and the home router",
+    "what": "Your domain, the internet, the home router and the VPN gate",
     "links": [
      "dns",
      "wan",
-     "lan_central"
+     "lan_central",
+     "vpn1"
     ]
    },
    {
@@ -761,6 +783,10 @@
    "caddy": [
     600,
     255
+   ],
+   "ticket": [
+    190,
+    235
    ],
    "isp": [
     360,
@@ -895,6 +921,7 @@
   "labels": {
    "domain": "below",
    "caddy": "left",
+   "ticket": "below",
    "central": "above-left",
    "nas": "above-right",
    "router": "left",

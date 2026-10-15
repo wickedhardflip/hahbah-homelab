@@ -17,6 +17,7 @@ THEME = {  # same themed names as the dashboard
     "smart_warn": "Signal problems", "slow_speed": "Slow zone", "mem_high": "Crowding", "os_eol": "Track work",
     "unmonitored": "No timetable", "cert_expiring": "Ticket expiring", "domain_expiring": "Lease ending", "dns_drift": "Wrong platform",
     "deploy_failed": "Signal failure", "raid_degraded": "Single tracking", "backup_stale": "Missed connection", "source_down": "No timetable",
+    "vpn_down": "Tunnel closed", "vpn_knocks": "Trespassers", "ddns_drift": "Wrong platform",
 }
 SEV_WORD = {"crit": "Danger", "warn": "Caution"}
 SEV_COLOR = {"crit": CRIT, "warn": WARN}

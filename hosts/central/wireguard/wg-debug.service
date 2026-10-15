@@ -1,0 +1,13 @@
+[Unit]
+Description=Log rejected WireGuard handshakes to the kernel log (read by wgstatus)
+After=wg-quick@wg0.service
+Requires=wg-quick@wg0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Only lines containing "Invalid" (bad MAC / bad handshake), not every keepalive.
+ExecStart=/bin/sh -c "echo 'module wireguard format Invalid +p' > /sys/kernel/debug/dynamic_debug/control"
+
+[Install]
+WantedBy=multi-user.target

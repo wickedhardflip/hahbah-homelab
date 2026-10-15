@@ -67,6 +67,12 @@ if ! bash "$REPO/deploy/firewall.sh" "$REPO/hosts/$HOST_ID" >> "$LOG" 2>&1; then
   exit 1
 fi
 
+# WireGuard + DDNS + status timers: hosts/<host-id>/wireguard/ (skipped when the host has none).
+if ! bash "$REPO/deploy/wireguard.sh" "$REPO/hosts/$HOST_ID" >> "$LOG" 2>&1; then
+  echo "$(date -Is) FAILED wireguard at ${REMOTE:0:7} ($MSG)" >> "$LOG"
+  exit 1
+fi
+
 echo "$REMOTE" > "$STATE"
 VER=$(tr -d '[:space:]' < "$REPO/VERSION" 2>/dev/null || true)   # release number; Alex says when to bump the major
 echo "$(date -Is) deployed ${REMOTE:0:7}${VER:+ v$VER} ($MSG)" >> "$LOG"

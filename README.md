@@ -228,7 +228,10 @@ portal/
   tests/                       pytest suite (portal, collectors, generators)
   requirements.in / .txt       direct pins / hash-pinned lockfile
 docs/
+  specs/                       design documents
   new-app-checklist.md         adding a systemd app
+  wireguard.md                 the phone VPN: how it is built and run
+  images/                      README screenshots
 mockup/                        the approved design mockup (open index.html)
 ```
 

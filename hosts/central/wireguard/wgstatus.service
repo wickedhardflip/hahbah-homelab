@@ -1,0 +1,28 @@
+[Unit]
+Description=Write WireGuard status and history for the HAHBAH portal
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /srv/homelab/repo/hosts/central/wireguard/wgstatus.py
+Environment=WG_HISTORY=/srv/homelab/wireguard/history.json
+Environment=WG_STATUS=/srv/homelab/collector/wireguard.json
+# Root is needed for `wg show`, the kernel log and wg0.conf; DAC_OVERRIDE lets it write into the collector folder (owned by youruser).
+User=root
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/homelab/wireguard /srv/homelab/collector
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+UMask=0022
+TimeoutStartSec=45

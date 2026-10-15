@@ -404,3 +404,68 @@ def apply_edge(doc: dict, snap: dict, nodes: dict, alerts: list, now: datetime) 
         problems.append(f"the Eero answers wrongly for {', '.join(e['dns'].get('via_eero_bad') or [])}")
     if problems:
         _alert(alerts, "live-dns", "warn", "domain", "dns_drift", "DNS needs a look: " + "; ".join(problems) + ".")
+
+
+# ---------- WireGuard VPN + DDNS (host-side files: wireguard.json every minute, ddns.json from the DDNS updater) ----------
+
+VPN_STALE_S = 300       # wireguard.json older than this: Danger
+DDNS_GRACE_S = 900      # a DNS record that disagrees with the WAN IP is fine for this long
+KNOCK_WARN = 200        # unknown knocks in one day that earn a Caution
+DDNS_NAME = "ticket.example.com"
+
+
+def apply_vpn(wg: dict, ddns: dict, snap: dict, nodes: dict, alerts: list, now: datetime, since: dict) -> None:
+    """`snap["vpn"]` feeds the NOC VPN section. Danger: the tunnel interface is down or wireguard.json is stale.
+    Caution: DDNS reports a failure or a DNS/WAN mismatch for 15 min, or a day of 200+ unknown knocks.
+    A peer that isn't connected is normal (it's a phone that's idle), so it never alerts. `since` remembers, between
+    builds, when a DNS mismatch was first seen. Neither file existing means the VPN isn't set up: no panel, no alerts."""
+    out: dict = {}
+    if wg and wg.get("checked_at"):
+        age = wg.get("age_s")
+        stale = age is None or age > VPN_STALE_S
+        out["wg"] = {**{k: wg.get(k) for k in ("checked_at", "interface_up", "listen_port", "peers", "sessions", "knocks")},
+                     "age_s": age, "stale": stale}
+        n = nodes.get("central")
+        if n is not None:
+            peers = wg.get("peers") or []
+            n["meta"]["VPN tunnel"] = ("unknown (status is stale)" if stale else
+                                       f"up · {sum(1 for p in peers if p.get('connected'))} of {len(peers)} peers connected"
+                                       if wg.get("interface_up") else "DOWN")
+        gate = nodes.get("ticket")   # the Ticket Gate station on the map
+        if gate is not None:
+            gate["status"] = "crit" if stale or not wg.get("interface_up") else "good"
+            gate["meta"]["Tunnel"] = n["meta"]["VPN tunnel"] if n is not None else gate["status"]
+        if stale:
+            _alert(alerts, "live-vpn-down", "crit", "ticket", "vpn_down",
+                   f"The VPN status hasn't updated for over {VPN_STALE_S // 60} minutes, so the tunnel can't be checked.")
+        elif not wg.get("interface_up"):
+            _alert(alerts, "live-vpn-down", "crit", "ticket", "vpn_down", "The WireGuard tunnel interface is down.")
+        today = ((wg.get("knocks") or {}).get("today")) or 0
+        if not stale and today > KNOCK_WARN:
+            if gate is not None and gate["status"] == "good":
+                gate["status"] = "warn"
+            _alert(alerts, "live-vpn-knocks", "warn", "ticket", "vpn_knocks",
+                   f"{today} unknown connection attempts hit the VPN port today (more than {KNOCK_WARN}).")
+    if ddns and ddns.get("checked_at"):
+        d = {k: ddns.get(k) for k in ("name", "ok", "wan_ip", "dns_ip", "updated_at", "error", "checked_at")}
+        d["name"] = d["name"] or DDNS_NAME
+        d["matches"] = bool(d["ok"]) and d["wan_ip"] is not None and d["wan_ip"] == d["dns_ip"]
+        out["ddns"] = d
+        mismatch = d["wan_ip"] != d["dns_ip"]
+        if mismatch:
+            first = since.setdefault("ddns", now)
+        else:
+            since.pop("ddns", None)
+        gate = nodes.get("ticket")
+        if not ddns.get("ok"):
+            if gate is not None and gate["status"] == "good":
+                gate["status"] = "warn"
+            _alert(alerts, "live-ddns", "warn", "ticket", "ddns_drift",
+                   f"The dynamic DNS updater reports a problem: {ddns.get('error') or 'unknown error'}.")
+        elif mismatch and (now - first).total_seconds() > DDNS_GRACE_S:
+            if gate is not None and gate["status"] == "good":
+                gate["status"] = "warn"
+            _alert(alerts, "live-ddns", "warn", "ticket", "ddns_drift",
+                   f"{d['name']} points at {d['dns_ip']} but the home IP is {d['wan_ip']}; it has been wrong for over 15 minutes.")
+    if out:
+        snap["vpn"] = out

@@ -1,0 +1,17 @@
+[Unit]
+Description=Update ticket.example.com to the current home public IP
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/srv/homelab/secrets/porkbun.env
+ExecStart=/usr/bin/python3 /srv/homelab/repo/hosts/central/wireguard/ddns.py
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/homelab/collector
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

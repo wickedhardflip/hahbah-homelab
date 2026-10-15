@@ -73,6 +73,27 @@ def sample_weather() -> dict:
             "hourly": hourly, "daily": daily}
 
 
+def sample_vpn() -> dict:
+    """What merge.apply_vpn would put in snap["vpn"] from a wireguard.json and a ddns.json (made-up peers and addresses)."""
+    now = datetime.now(timezone.utc)
+    iso = lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ")
+    day = lambda i: (now - timedelta(days=29 - i)).strftime("%Y-%m-%d")
+    counts = [3, 0, 12, 7, 1, 0, 0, 25, 9, 4, 2, 0, 31, 6, 8, 0, 1, 14, 5, 3, 0, 2, 18, 7, 4, 0, 1, 9, 6, 11]
+    sess = lambda peer, ago_h, mins, ip, rx, tx: {"peer": peer, "start": iso(now - timedelta(hours=ago_h)),
+                                                  "last_seen": iso(now - timedelta(hours=ago_h) + timedelta(minutes=mins)),
+                                                  "endpoint_ip": ip, "rx_bytes": rx, "tx_bytes": tx}
+    return {"wg": {"checked_at": iso(now), "interface_up": True, "listen_port": 51820, "age_s": 20, "stale": False,
+                   "peers": [{"name": "alex-phone", "connected": False, "last_handshake": iso(now - timedelta(hours=2)), "rx": 48_000_000, "tx": 9_000_000, "endpoint_ip": "198.51.100.23"},
+                             {"name": "alex-laptop", "connected": True, "last_handshake": iso(now - timedelta(seconds=40)), "rx": 310_000_000, "tx": 52_000_000, "endpoint_ip": "203.0.113.77"}],
+                   "sessions": [sess("alex-laptop", 1, 55, "203.0.113.77", 310_000_000, 52_000_000), sess("alex-phone", 5, 22, "198.51.100.23", 48_000_000, 9_000_000),
+                                sess("alex-phone", 30, 8, "198.51.100.40", 3_000_000, 1_000_000)],
+                   "knocks": {"today": counts[-1], "daily": [{"date": day(i), "count": c} for i, c in enumerate(counts)],
+                              "top_sources": [{"ip": "192.0.2.14", "count": 61, "last_seen": iso(now - timedelta(hours=3))},
+                                              {"ip": "192.0.2.201", "count": 33, "last_seen": iso(now - timedelta(days=2))}]}},
+            "ddns": {"name": "ticket.example.com", "ok": True, "wan_ip": "203.0.113.9", "dns_ip": "203.0.113.9", "matches": True,
+                     "updated_at": iso(now - timedelta(days=9)), "error": None, "checked_at": iso(now)}}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8765)
@@ -89,7 +110,7 @@ def main() -> int:
     for d in ("data", "outbox", "mail", "weather"):
         (tmp / d).mkdir()
     snap = load_snapshot()
-    snap["sports"], snap["weather"] = sample_sports(), sample_weather()
+    snap["sports"], snap["weather"], snap["vpn"] = sample_sports(), sample_weather(), sample_vpn()
 
     class Fake:
         def build(self):

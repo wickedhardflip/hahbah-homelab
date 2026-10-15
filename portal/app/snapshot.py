@@ -64,6 +64,7 @@ class SnapshotBuilder:
                  trends=lambda: {}):
         self.topology, self.host, self.eero, self.deploy, self.apps, self.plex, self.now = topology, host, eero, deploy, apps, plex, now
         self.cert, self.health, self.collector, self.tz, self.trends = cert, health, collector, tz, trends
+        self._vpn_since: dict = {}   # when a DDNS mismatch was first seen (kept between builds)
 
     def build(self) -> dict:
         snap = copy.deepcopy(self.topology)
@@ -103,7 +104,8 @@ class SnapshotBuilder:
                  ("eero", lambda: merge.apply_eero(files.get("eero"), snap, nodes, alerts)),
                  ("eero_usage", lambda: merge.apply_eero_usage(files.get("eero_usage"), snap)),
                  ("eero_history", lambda: merge.apply_eero_history(files.get("eero_history"), snap)),
-                 ("edge", lambda: merge.apply_edge(files.get("edge"), snap, nodes, alerts, now)))
+                 ("edge", lambda: merge.apply_edge(files.get("edge"), snap, nodes, alerts, now)),
+                 ("vpn", lambda: merge.apply_vpn(files.get("wireguard"), files.get("ddns"), snap, nodes, alerts, now, self._vpn_since)))
         for name, step in steps:
             try:
                 step()

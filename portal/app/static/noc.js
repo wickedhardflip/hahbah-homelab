@@ -191,6 +191,57 @@
     return h("div", { class: "noc-wifi" }, out.length ? out : [h("div", { class: "noc-note", text: "The router's cloud API hasn't reported yet." })]);
   }
 
+  // ---------- VPN (WireGuard + DDNS, written by the host every minute) ----------
+  const ago = (iso) => {
+    const sec = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+    return sec < 90 ? "just now" : sec < 5400 ? `${Math.round(sec / 60)} min ago` : sec < 129600 ? `${Math.round(sec / 3600)} h ago` : `${Math.round(sec / 86400)} d ago`;
+  };
+  const span = (a, b) => {
+    const m = Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000));
+    return m < 60 ? `${m} min` : m < 1440 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${Math.floor(m / 1440)} d ${Math.floor((m % 1440) / 60)} h`;
+  };
+  function vpn() {
+    const V = S.vpn || {}, W = V.wg, D = V.ddns, out = [];
+    const alertOn = (kind) => H.alerts().find((a) => a.target === "ticket" && a.kind === kind);
+    if (W) {
+      const peers = W.peers || [], on = peers.filter((p) => p.connected).length, K = W.knocks || { today: 0, daily: [], top_sources: [] };
+      const tun = W.stale || !W.interface_up ? "crit" : "good";
+      const cards = [edgeCard("ticket", "VPN tunnel", tun,
+        [["Interface", W.stale ? "no recent status" : W.interface_up ? `up · port ${W.listen_port ?? "?"}` : "DOWN"], ["Peers connected", `${on} of ${peers.length}`], ["Status", W.stale ? "stale" : `checked ${ago(W.checked_at)}`]])];
+      // Green "CONNECTED" or grey dashed "NOT CONNECTED" (grey, not red: an idle phone is normal, not a fault).
+      peers.forEach((p) => {
+        const card = edgeCard("ticket", `Peer: ${p.name}`, p.connected ? "good" : "unknown",
+          [["Now", p.connected ? "connected" : p.last_handshake ? `last seen ${ago(p.last_handshake)}` : "never connected"], ["From", p.endpoint_ip || "—"], ["Data", `↓${fmtBytes(p.rx)} ↑${fmtBytes(p.tx)}`]]);
+        card.querySelector(".stw").textContent = p.connected ? "CONNECTED" : "NOT CONNECTED";
+        cards.push(card);
+      });
+      if (D) {
+        const dst = alertOn("ddns_drift") ? "warn" : "good";
+        cards.push(edgeCard("ticket", "Dynamic DNS", dst, [["Name", D.name], ["Matches home IP", D.matches ? "yes" : "NO"], ["Home IP", D.wan_ip || "—"], ["DNS says", D.dns_ip || "—"],
+          ["Last change", D.updated_at ? ago(D.updated_at) : "—"]]));
+      }
+      out.push(h("div", { class: "noc-hosts" }, cards));
+      out.push(h("div", { class: "noc-note", text: "An idle peer is normal; only the tunnel itself going down raises an alarm." }));
+      const liveNow = new Set(peers.filter((p) => p.connected).map((p) => p.name));
+      const ses = (W.sessions || []).slice(0, 10).map((x, i) => {
+        const live = i === 0 && liveNow.has(x.peer);   // newest row of a peer that is connected right now
+        return h("tr", {}, [td(x.peer), td(fmtShort(new Date(x.start))), td(live ? "● connected now" : fmtShort(new Date(x.last_seen))), td(span(x.start, x.last_seen), "num"), td(x.endpoint_ip), td(`↓${fmtBytes(x.rx_bytes)} ↑${fmtBytes(x.tx_bytes)}`, "num")]);
+      });
+      out.push(h("div", { class: "noc-note", text: "Recent connections" }));
+      out.push(ses.length ? tbl(["Peer", "Started", "Ended", "Length", "From", "Data"], ses) : h("div", { class: "noc-note", text: "No connections recorded yet." }));
+      const days = K.daily.map((d) => d.count), top = K.top_sources || [];
+      const kc = alertOn("vpn_knocks") ? "warn" : "good";
+      const knock = [h("div", { class: "noc-note", text: `Unknown knocks today: ${K.today} · last 30 days: ${days.reduce((a, b) => a + b, 0)} (packets the VPN port refused)` }),
+        hourBars(days, [], 300, "Unknown knocks per day, last 30 days")];
+      out.push(h("div", { class: "hostp " + kc }, [h("div", { class: "hd" }, ["Unknown knocks"]), h("div", { class: "noc-pair" }, [h("div", {}, knock),
+        top.length ? tbl(["Source", "Count", "Last seen"], top.map((t) => h("tr", {}, [td(t.ip), td(t.count, "num"), td(ago(t.last_seen))]))) : h("div", { class: "noc-note", text: "No knocks in the last 30 days." })])]));
+    } else if (D) {
+      out.push(h("div", { class: "noc-hosts" }, [edgeCard("ticket", "Dynamic DNS", alertOn("ddns_drift") ? "warn" : "good",
+        [["Name", D.name], ["Matches home IP", D.matches ? "yes" : "NO"], ["Last change", D.updated_at ? ago(D.updated_at) : "—"]])]));
+    }
+    return h("div", { class: "noc-wifi" }, out);
+  }
+
   // ---------- services ----------
   const GROUPS = [["app", "Applications"], ["mount", "Storage mounts (NFS)"], ["drive", "NAS drives"]];
   function tileMetric(n) {
@@ -326,6 +377,7 @@
         ? "Demo traffic is on: these rates are simulated."
         : "Only Central's and the NAS's wired ports are measured today. The trend is sampled in this browser; the portal will serve real history." })])));
     if (S.eero) root.append(section("Wi-Fi & devices", "Router cloud", wifi()));
+    if (S.vpn) root.append(section("VPN", "WireGuard", vpn()));
   }
 
   H.listeners.push(() => {
