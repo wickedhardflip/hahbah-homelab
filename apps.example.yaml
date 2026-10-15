@@ -1,0 +1,8 @@
+# Copy over apps.yaml and edit. One line per app; the portal, Caddy routes, firewall rules and DNS checks all come from this file.
+domain: example.com          # a domain you own; every app becomes <subdomain>.example.com
+edge_host: central           # the machine running Caddy
+hosts:
+  central: {ip: 192.168.1.10}   # that machine's LAN address (give it a DHCP reservation)
+apps:
+  - {id: notes, name: Notes, subdomain: notes, host: central, port: 8080, health: /login, lan_url: "http://192.168.1.10:8080", sso: true, admin: true}
+  - {id: plex,  name: Plex,  subdomain: plex,  host: central, port: 32400, health: /identity, lan_url: "http://192.168.1.10:32400/web"}

@@ -1,0 +1,9 @@
+[Unit]
+Description=Homelab pull-based deploy (GitHub main -> this host's stack)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=youruser
+ExecStart=/usr/bin/bash /srv/homelab/repo/deploy/pull.sh
