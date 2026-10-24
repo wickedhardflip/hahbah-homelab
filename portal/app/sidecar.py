@@ -4,7 +4,7 @@
 
 Jobs: nas (60 s, SSH with a key the NAS restricts to its stats script), mounts + pings (60 s), smart (daily 04:05) and
 speed (daily 04:10), eero + eero_usage (5 min / hourly, the Eero cloud API: nodes, devices, usage, settings), edge (6 h, Porkbun + DNS via the Eero), backup (5 min, a copy of RePlexOn's database), and mailer
-(30 s, sends the portal's outbox with msmtp to the owners + web-added addresses), and weather (15 min, Open-Meteo). One failing job never stops the others.
+(30 s, sends the portal's outbox with msmtp to the owners + web-added addresses), weather (15 min, Open-Meteo), and with WYZE_EMAIL set the Wyze plugs (wyze 5 min, plug_cmd 2 s, plug_schedules 30 s). One failing job never stops the others.
 """
 import json
 import logging
@@ -29,7 +29,8 @@ class Job:
     unless its last result is younger than `fresh_s` (so a deploy doesn't trigger an extra speed test)."""
 
     def __init__(self, name: str, interval_s: int, fn, daily_at: str | None = None, fresh_s: int | None = None,
-                 timeout_s: float = 300, trigger: Path | None = None):
+                 timeout_s: float = 300, trigger: Path | None = None, quiet: bool = False):
+        self.quiet = quiet   # a run that returns None writes no result file (fast jobs that mostly have nothing to do)
         self.trigger = trigger   # a file the portal touches to ask for a run now; newer than the last result = run
         self.name, self.interval_s, self.fn, self.next_at = name, interval_s, fn, 0.0
         self.timeout_s = timeout_s   # past this the job is recorded as failed (Timeout); it never overlaps itself
@@ -122,6 +123,8 @@ class Runner:
 
     def _run(self, job: Job) -> None:
         r = self._call(job)
+        if job.quiet and r["ok"] and r["data"] is None:
+            return
         self._record(job, {"ok": r["ok"], **{k: v for k, v in r.items() if k != "ok"}})
 
     def tick(self, mono: float) -> None:
@@ -232,6 +235,14 @@ def build_jobs(env=os.environ.get) -> list:
     if env("WEATHER_LOCATION"):   # Open-Meteo, no key; the place comes from a file the portal writes (read-only here)
         from .collectors.weather import fetch_weather, read_location
         jobs.append(Job("weather", 900, lambda: fetch_weather(read_location(env("WEATHER_LOCATION")), env("PORTAL_TZ", "America/New_York"))))
+    if env("WYZE_EMAIL"):   # Wyze smart plugs; login keys come from secrets/wyze.env, settings + commands from the shared /plugs folder
+        from .collectors.wyze import Wyze
+        from .plugs import PlugService
+        plugs = PlugService(Wyze(env("WYZE_EMAIL"), env("WYZE_PASSWORD", ""), env("WYZE_KEY_ID", ""), env("WYZE_API_KEY", "")),
+                            Path(env("COLLECTOR_DIR", "/out")), Path(env("PLUGS_DIR", "/plugs")), env("PORTAL_TZ", "America/New_York"))
+        jobs.append(Job("wyze", 300, plugs.poll))
+        jobs.append(Job("plug_cmd", 2, plugs.run_commands, quiet=True))   # lists a folder; the network is touched only when a command file is there
+        jobs.append(Job("plug_schedules", 30, plugs.run_schedules, quiet=True))
     return jobs
 
 

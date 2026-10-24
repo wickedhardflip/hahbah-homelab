@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/weather.css">
+<link rel="stylesheet" href="/static/plugs.css">
 <script type="importmap">{"imports":{"three":"/static/vendor/three/three.module.js","three/addons/":"/static/vendor/three/addons/"}}</script>
 <style>
 :root, [data-theme="day"] {
@@ -333,7 +334,7 @@ body[data-view="noc"] .noc { display: block; }
   <span class="seg"><button class="btn" id="bDay">Day</button><button class="btn" id="bNight">Midnight</button></span>
   <span class="wx-slot wx-noc-slot" id="wxNocSlot"></span>
 </div>
-
+<div class="plugstrip" id="plugstrip" aria-label="Smart plugs" hidden></div>
 
 <main class="layout" id="layout">
   <section class="mapwrap" id="mapwrap" aria-label="Homelab transit map">
@@ -1180,6 +1181,7 @@ body[data-view="noc"] .noc { display: block; }
   window.addEventListener("DOMContentLoaded", () => setView(state.view));
 })();
 </script>
+<script src="/static/plugs.js"></script>
 <script src="/static/noc.js"></script>
 <script src="/static/weather.js"></script>
 <script type="module">

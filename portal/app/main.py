@@ -5,6 +5,8 @@ import json
 import logging
 import re
 import secrets
+import threading
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -39,6 +41,7 @@ from .merge import read_collector
 from .db import Base, get_db, make_engine, make_sessionmaker, migrate
 from .google import GoogleCancelled, GoogleLogin, GoogleStateError, GoogleUnavailable
 from .models import Session as SessionRow, User, UserPrefs, utcnow
+from . import plugs as plugs_mod
 from . import settingsstore
 from .recorder import Recorder, user_addresses
 from .registry import load_registry
@@ -48,6 +51,7 @@ from .views import discreet as discreet_view, duration, edge_panel, scrub_incide
 
 HERE = Path(__file__).parent
 REEL, REEL_POSTER = "hahbah-reel.mp4", "hahbah-reel.jpg"
+FLOORPLAN = "floorplan.jpg"   # the apartment drawing: private, lives in media_dir next to the About video, never in git
 MEDIA_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,60}\.(mp4|jpg|png|webp)$")
 MAINT_KEY = re.compile(r"^(\*|[a-z_]{1,40}:[\w.\-/]{1,80})$")   # a maintenance window's target: an incident key or "*"
 MEDIA_TYPES = {"mp4": "video/mp4", "jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
@@ -426,6 +430,19 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
             "reel": REEL, "reel_poster": REEL_POSTER, "is_admin": bool(user.is_admin),
             "v": int((settings.media_dir / REEL).stat().st_mtime) if (settings.media_dir / REEL).is_file() else 0})   # cache-buster
 
+    # ---------- Floorplan (any signed-in user sees it; the layout API that edits it is admin-only) ----------
+    @app.get("/floorplan")
+    def floorplan_page(request: Request, user=Depends(current_user)):
+        return templates.TemplateResponse(request, "floorplan.html", {"user": user, "is_admin": bool(user.is_admin),
+                                                                      "has_image": (settings.media_dir / FLOORPLAN).is_file()})
+
+    @app.get("/floorplan/image")
+    def floorplan_image(user=Depends(current_user)):
+        path = settings.media_dir / FLOORPLAN
+        if not path.is_file():
+            raise HTTPException(status_code=404)
+        return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+
     # ---------- Profile (any signed-in user) ----------
     def profile_page(request: Request, user, note: str = "", bad: bool = False, status: int = 200):
         with SessionLocal() as db:
@@ -618,6 +635,140 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
         except OSError:
             raise HTTPException(status_code=503, detail="Could not ask for a speed test.")
         return {"status": "started"}
+
+    # ---------- smart plugs + floorplan layout ----------
+
+    app.state.plug_last = {}   # plug id -> monotonic time of its last command (one per 2 s)
+    plug_write = threading.Lock()
+
+    def wyze_state() -> dict:
+        """wyze.json from the collector: {configured, plugs, checked_at, stale}. Never raises."""
+        try:
+            doc = json.loads((settings.collector_dir / "wyze.json").read_text(encoding="utf-8"))
+            data = doc["data"] if isinstance(doc.get("data"), dict) else {}
+            plugs = [p for p in data.get("plugs", []) if isinstance(p, dict) and isinstance(p.get("id"), str)]
+            age = (datetime.now(timezone.utc) - datetime.fromisoformat(doc["checked_at"].replace("Z", "+00:00"))).total_seconds()
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            return {"configured": False, "plugs": [], "checked_at": None, "stale": False}
+        return {"configured": True, "plugs": plugs, "checked_at": doc["checked_at"],
+                "stale": age > plugs_mod.STALE_S or not doc.get("ok") or bool(data.get("error"))}
+
+    def plug_config() -> dict:
+        return plugs_mod.read_config(settings.plugs_dir / "config.json") if settings.plugs_dir else {}
+
+    @app.get("/api/plugs")
+    def api_plugs(user=Depends(current_user)):
+        st, cfg, now = wyze_state(), plug_config(), datetime.now(ZoneInfo(settings.home_tz))
+        rows = []
+        for p in st["plugs"]:
+            c = cfg.get(p["id"], {"label": "", "schedules_enabled": False, "schedules": []})
+            rows.append({"id": p["id"], "name": c["label"] or p.get("nickname") or "Plug", "nickname": p.get("nickname", ""),
+                         "label": c["label"], "model": p.get("model", ""), "online": bool(p.get("online")), "on": bool(p.get("on")),
+                         "away": bool(p.get("away")), "schedules_enabled": c["schedules_enabled"], "schedules": c["schedules"],
+                         "last_cmd": p.get("last_cmd"), "last_sched": p.get("last_sched"),
+                         "next": plugs_mod.next_event(c, now)})
+        return {"plugs": rows, "checked_at": st["checked_at"], "stale": st["stale"], "configured": st["configured"]}
+
+    async def plug_body(request: Request, pid: str) -> dict:
+        """Shared checks for a plug write: Origin, set up, a known plug id, a JSON object body."""
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        if not settings.plugs_dir:
+            raise HTTPException(status_code=404, detail="Smart plugs are not set up.")
+        if pid not in {p["id"] for p in wyze_state()["plugs"]}:
+            raise HTTPException(status_code=404, detail="No plug with that id.")
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001 (not JSON)
+            body = None
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=422, detail="Send a JSON object.")
+        return body
+
+    async def plug_command(request: Request, pid: str, user, away: bool):
+        body = await plug_body(request, pid)
+        if not isinstance(body.get("on"), bool):
+            raise HTTPException(status_code=422, detail='Send {"on": true} or {"on": false}.')
+        last = app.state.plug_last
+        if time.monotonic() - last.get(pid, -10.0) < 2:
+            raise HTTPException(status_code=429, detail="One command per plug every 2 seconds.")
+        action = ("away_" if away else "") + ("on" if body["on"] else "off")
+        try:
+            plugs_mod.write_command(settings.plugs_dir / "cmd", pid, action, user.username)
+        except OSError:
+            raise HTTPException(status_code=503, detail="Could not queue the command.")
+        last[pid] = time.monotonic()
+        return JSONResponse({"queued": True}, status_code=202)
+
+    @app.post("/api/plugs/{pid}/power")
+    async def api_plug_power(request: Request, pid: str, user=Depends(admin_user)):
+        return await plug_command(request, pid, user, away=False)
+
+    @app.post("/api/plugs/{pid}/away")
+    async def api_plug_away(request: Request, pid: str, user=Depends(admin_user)):
+        return await plug_command(request, pid, user, away=True)
+
+    @app.put("/api/plugs/{pid}/config")
+    async def api_plug_config(request: Request, pid: str, user=Depends(admin_user)):
+        body = await plug_body(request, pid)
+        try:
+            clean = plugs_mod.validate_plug_config(body)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        try:
+            with plug_write:   # read, change one plug, write back: two saves never interleave
+                cfg = plug_config()
+                cfg[pid] = clean
+                plugs_mod.write_json(settings.plugs_dir / "config.json", {"plugs": cfg})
+        except OSError:
+            raise HTTPException(status_code=503, detail="Could not save the settings.")
+        return {"id": pid, **clean}
+
+    def floorplan_available(user) -> list:
+        """Everything that can be placed on the map, from live data: plugs, Eero nodes, wired hosts, central + NAS."""
+        snap, cfg = visible_view(user), plug_config()
+        out = [{"id": "plug:" + p["id"], "kind": "plug", "detail": p.get("model", ""),
+                "label": cfg.get(p["id"], {}).get("label") or p.get("nickname") or "Plug"} for p in wyze_state()["plugs"]]
+        live = (snap.get("eero") or {}).get("live") or {}
+        for n in live.get("nodes") or []:
+            if n.get("name"):
+                out.append({"id": "eero:" + re.sub(r"[^a-z0-9]+", "-", n["name"].lower()).strip("-"), "kind": "eero",
+                            "label": n["name"], "detail": n.get("model") or ""})
+        out += [{"id": "host:" + c["id"], "kind": "host", "label": c["name"], "detail": c.get("ip") or ""}
+                for c in live.get("clients") or [] if c.get("wired") and c.get("id")]
+        out += [{"id": "host:" + n["id"], "kind": "host", "label": n["label"], "detail": n.get("sublabel") or ""}
+                for n in snap.get("nodes", []) if n.get("id") in ("central", "nas")]
+        return out
+
+    def saved_layout() -> dict:
+        with SessionLocal() as db:
+            raw = settingsstore.get(db, "floorplan_layout")
+        try:   # stored text was validated on save: re-check shape only, so a plug missing from live data keeps its pin
+            doc = json.loads(raw) if raw else dict(plugs_mod.EMPTY_LAYOUT)
+            return plugs_mod.validate_layout(doc, {i["id"] for i in doc["items"]})
+        except (ValueError, KeyError, TypeError):
+            return dict(plugs_mod.EMPTY_LAYOUT)
+
+    @app.get("/api/floorplan")
+    def api_floorplan(user=Depends(current_user)):
+        return {"layout": saved_layout(), "available": floorplan_available(user), "image": "/floorplan/image"}
+
+    @app.put("/api/floorplan")
+    async def api_floorplan_put(request: Request, user=Depends(admin_user)):
+        if not same_origin(request, settings.home_url):
+            raise HTTPException(status_code=403, detail="Cross-site request refused.")
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001 (not JSON)
+            body = None
+        known = {a["id"] for a in floorplan_available(user)} | {i["id"] for i in saved_layout()["items"]}
+        try:
+            clean = plugs_mod.validate_layout(body, known)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        with SessionLocal() as db:
+            settingsstore.put(db, "floorplan_layout", json.dumps(clean))
+        return {"layout": clean}
 
     @app.get("/api/snapshot")
     def api_snapshot(user=Depends(current_user)):

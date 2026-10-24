@@ -40,6 +40,7 @@ services:
       PORTAL_MAIL_DIR: "/mail"                    # recipients.json: addresses added in Settings (the collector reads it)
       PORTAL_SPEED_REQUEST: "/weather/speedtest.request"   # the Run speed test button touches this; the collector runs a test when it is newer than the last one
       PORTAL_OUTBOX: "/outbox"                    # the portal only writes emails here; the collector sends them
+      PORTAL_PLUGS_DIR: "/plugs"                  # smart plug settings + command files (the collector reads and runs them)
       TAUTULLI_URL: "http://tautulli:8181"
       PORTAL_COOKIE_DOMAIN: ".example.com"
       PORTAL_DISKS: "/=/app/data,/boot/efi=/host/boot-efi"
@@ -60,6 +61,7 @@ services:
       - /srv/homelab/outbox:/outbox               # email outbox (written here, sent by the collector)
       - /srv/homelab/weather:/weather             # weather location file (lat/lon the portal writes; the collector reads it)
       - /srv/homelab/mail:/mail                   # web-added email addresses (rw here, ro in the collector)
+      - /srv/homelab/plugs:/plugs                 # smart plug settings + command files (rw in both: the collector deletes the commands it runs)
   # Slow or secret-holding checks, kept out of the web-facing portal: the Porkbun keys and the NAS key live only here.
   # Same image as the portal, no ports. Writes one JSON file per job to /srv/homelab/collector.
   collector:
@@ -75,8 +77,11 @@ services:
         required: false
       - path: /srv/homelab/secrets/alerts.env # ALERT_EMAIL_TO: the only address the mailer will send to
         required: false
+      - path: /srv/homelab/secrets/wyze.env   # WYZE_EMAIL / WYZE_PASSWORD / WYZE_KEY_ID / WYZE_API_KEY: the Wyze plug jobs start only when WYZE_EMAIL is set
+        required: false
     environment:
       COLLECTOR_DIR: "/out"
+      PLUGS_DIR: "/plugs"                     # plug settings (read) + command files (read, deleted once run)
       PORTAL_APPS_FILE: "/app/repo/apps.yaml"
       PORTAL_TZ: "America/New_York"
       NAS_HOST: "192.168.1.4"
@@ -104,6 +109,7 @@ services:
       - /srv/homelab/outbox:/outbox
       - /srv/homelab/weather:/weather:ro
       - /srv/homelab/mail:/mail:ro
+      - /srv/homelab/plugs:/plugs
       - /home/youruser/.msmtprc:/home/app/.msmtprc:ro   # the Gmail app-password config LegacyMonitor used (0600, uid 1000)
   tautulli:
     image: ghcr.io/tautulli/tautulli:v2.18.2    # pinned; bump deliberately

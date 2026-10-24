@@ -1,0 +1,22 @@
+{
+  "plugs": [
+    {"id": "AAAA00000001", "name": "Hallway lamp", "nickname": "Plug 1", "label": "Hallway lamp", "model": "WLPP1CFH",
+     "online": true, "on": true, "away": false, "schedules_enabled": true,
+     "schedules": [
+       {"id": "s1", "days": [0, 1, 2, 3, 4], "time": "17:30", "action": "on", "enabled": true},
+       {"id": "s2", "days": [0, 1, 2, 3, 4, 5, 6], "time": "23:00", "action": "off", "enabled": true}
+     ],
+     "last_cmd": {"action": "on", "by": "demo", "at": "2026-10-23T14:02:11Z", "ok": true},
+     "last_sched": {"action": "on", "at": "2026-10-22T21:30:00Z", "ok": true, "error": null},
+     "next": "Fri 23:00 off"},
+    {"id": "AAAA00000002", "name": "Tree lights", "nickname": "Plug 2", "label": "", "model": "WLPP1CFH",
+     "online": true, "on": false, "away": false, "schedules_enabled": false, "schedules": [],
+     "last_cmd": null, "last_sched": null, "next": null},
+    {"id": "AAAA00000003", "name": "Storage plug", "nickname": "Storage plug", "label": "", "model": "WLPP1CFH",
+     "online": false, "on": false, "away": false, "schedules_enabled": false, "schedules": [],
+     "last_cmd": null, "last_sched": null, "next": null}
+  ],
+  "checked_at": "2026-10-23T15:00:00Z",
+  "stale": false,
+  "configured": true
+}

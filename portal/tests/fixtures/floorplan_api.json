@@ -1,0 +1,27 @@
+{
+  "layout": {
+    "items": [
+      {"id": "plug:AAAA00000001", "kind": "plug", "x": 0.52, "y": 0.52},
+      {"id": "plug:AAAA00000002", "kind": "plug", "x": 0.16, "y": 0.5},
+      {"id": "eero:node-living", "kind": "eero", "x": 0.7, "y": 0.4},
+      {"id": "central:main", "kind": "central", "x": 0.74, "y": 0.58},
+      {"id": "custom:ab12", "kind": "custom", "label": "Tree lights strip", "icon": "tree", "x": 0.35, "y": 0.2}
+    ],
+    "links": [
+      {"a": "plug:AAAA00000001", "b": "custom:ab12", "kind": "power"},
+      {"a": "eero:node-living", "b": "central:main", "kind": "wired"},
+      {"a": "eero:node-living", "b": "plug:AAAA00000001", "kind": "wifi"},
+      {"a": "plug:AAAA00000002", "b": "plug:AAAA00000001", "kind": "other"}
+    ]
+  },
+  "available": [
+    {"id": "plug:AAAA00000001", "kind": "plug", "label": "Hallway lamp", "detail": "Smart plug"},
+    {"id": "plug:AAAA00000002", "kind": "plug", "label": "Tree lights", "detail": "Smart plug"},
+    {"id": "plug:AAAA00000003", "kind": "plug", "label": "Storage plug", "detail": "Smart plug"},
+    {"id": "eero:node-living", "kind": "eero", "label": "Living room", "detail": "14 devices"},
+    {"id": "eero:node-office", "kind": "eero", "label": "Office", "detail": "6 devices"},
+    {"id": "central:main", "kind": "central", "label": "Central", "detail": "Home server"},
+    {"id": "nas:main", "kind": "nas", "label": "NAS", "detail": "Network storage"}
+  ],
+  "image": "/floorplan/image"
+}

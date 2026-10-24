@@ -90,6 +90,10 @@ Tautulli supplies Plex activity: a "N watching" badge on the Plex tile, today an
 
 A weather chip (Open-Meteo, location set in Settings) and sports cards on the 3D map stadiums (public MLB and ESPN endpoints). Neither needs an API key.
 
+### Smart plugs
+
+The collector can list and switch Wyze smart plugs (unofficial `wyze-sdk`, cloud). It starts only when `WYZE_EMAIL` is set, from an optional `secrets/wyze.env` (`WYZE_EMAIL`, `WYZE_PASSWORD`, `WYZE_KEY_ID`, `WYZE_API_KEY`). It logs in once per start and lists every 5 minutes. Wyze has no schedule or rename API, so labels and schedules live in the portal (shared `plugs` folder, per-plug master switch), and an offline plug never raises an incident or alert. Admins switch plugs and edit settings through `/api/plugs`; the apartment floorplan layout is stored through `/api/floorplan`. Design: `docs/specs/2026-10-23-wyze-plugs-floorplan-design.md`.
+
 ### Single sign-on
 
 One sign-in covers the portal and every app behind it. **Sign in with Google** is the primary path, and a password (Argon2id) is the fallback. A Google account only works if it is linked to an existing user, so there is no separate allowlist to keep in sync.

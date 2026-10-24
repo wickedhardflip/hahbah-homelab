@@ -31,6 +31,7 @@ class Settings:
     sports_file: Path | None = None                   # where the team picks are written (the collector reads it)
     weather_dir: Path | None = None                   # where the weather location file is written (the collector reads it)
     speed_request: Path | None = None                 # touched by the speed-test button; the collector runs a test when it is newer than the last one
+    plugs_dir: Path | None = None                     # smart plug settings + command files (the portal writes, the collector reads)
     collector_dir: Path = Path("/collector")          # the collector container's JSON files (read-only here)
     caddy_host: str = "caddy"
     host_gateway: str = "host.docker.internal"        # how the portal container reaches apps on the host
@@ -73,6 +74,7 @@ def load_settings() -> Settings:
         sports_file=Path(env("PORTAL_SPORTS_FILE")) if env("PORTAL_SPORTS_FILE") else None,
         weather_dir=Path(env("PORTAL_WEATHER_DIR")) if env("PORTAL_WEATHER_DIR") else None,
         speed_request=Path(env("PORTAL_SPEED_REQUEST")) if env("PORTAL_SPEED_REQUEST") else None,
+        plugs_dir=Path(env("PORTAL_PLUGS_DIR")) if env("PORTAL_PLUGS_DIR") else None,
         collector_dir=Path(env("PORTAL_COLLECTOR_DIR", "/collector")),
         caddy_host=env("PORTAL_CADDY_HOST", "caddy"),
         host_gateway=env("PORTAL_HOST_GATEWAY", "host.docker.internal"),

@@ -48,6 +48,8 @@ Each job runs only if its setting is present.
 | `OUTBOX` (+ `ALERT_EMAIL_TO`, `RECIPIENTS_FILE`) | unset | Sends queued emails with `msmtp` |
 | `REPLEXON_DB` | unset | Plex backup summary |
 | `SPORTS` (+ `SPORTS_PICKS`) | `1` | Stadium scores (MLB Stats API, ESPN public feeds; no keys) |
+| `WYZE_EMAIL`, `WYZE_PASSWORD`, `WYZE_KEY_ID`, `WYZE_API_KEY` | unset | Wyze smart plugs through Wyze's cloud API (unofficial `wyze-sdk`, key from developer-api-console.wyze.com). Status every 5 min, one call per command, token kept in memory. Set `WYZE_EMAIL` to turn the plug jobs on; schedules and display names live in the portal because the API cannot read or rename them. Plug control and the Floorplan page are admin-only for writes |
+| `PLUGS_DIR` / `PORTAL_PLUGS_DIR` | `/plugs` | Shared folder for plug settings and command files (collector and portal) |
 | `WEATHER_LOCATION` | unset | Forecast from Open-Meteo (no key) |
 | `COLLECTOR_DIR` | `/collector` | Where each job writes its JSON |
 | `PORTAL_APPS_FILE`, `PORTAL_TZ` | as above | Shared with the portal |

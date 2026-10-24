@@ -355,6 +355,39 @@
     return box;
   }
 
+  // ---------- smart plugs (store in plugs.js; same on/off buttons as the strip) ----------
+  const PL = window.Plugs;
+  let plugsBox = null, plugsShown = false;
+  function plugsTable() {
+    const mini = (label, fn) => h("button", { type: "button", class: "ack", text: label, onclick: fn });
+    const rows = PL.list().map((p) => {
+      const pend = PL.pending[p.id], can = PL.admin && p.online && !pend;
+      const act = !PL.admin ? "" : [
+        mini(pend ? "..." : p.on ? "Turn off" : "Turn on", () => PL.power(p.id, !p.on)),
+        mini(p.away ? "Away off" : "Away on", () => PL.away(p.id, !p.away))];
+      if (act) act.forEach((b) => { b.disabled = !can; });
+      return h("tr", { class: p.online ? "" : "acked" }, [
+        h("td", {}, [h("b", { text: p.name || p.nickname || p.id })]),
+        td(p.model), td(p.online ? "online" : "offline"), td(PL.word(p)), td(p.away ? "on" : "off"),
+        td(p.schedules_enabled ? `on, ${(p.schedules || []).length}` : "off"), td(p.next),
+        td(PL.cmdText(p.last_cmd)), td(p.last_sched ? PL.cmdText(p.last_sched) : "none yet"),
+        h("td", {}, act || [])]);
+    });
+    const t = tbl(["Plug", "Model", "Link", "Power", "Away", "Schedules", "Next", "Last command", "Last schedule", ""], rows);
+    t.querySelectorAll("tbody tr").forEach((tr) => { tr.style.cursor = "default"; });
+    return t;
+  }
+  function plugsBody() {
+    plugsBox = h("div", {}, [plugsTable(), PL.error ? h("div", { class: "noc-note", role: "status", text: PL.error }) : null,
+      h("div", { class: "noc-note" }, [PL.data && PL.data.stale ? "Status is out of date. " : "", h("a", { href: "/floorplan", style: "color:var(--info)", text: "Open the floorplan" })])]);
+    return plugsBox;
+  }
+  if (PL) PL.on(() => {
+    if (!active) return;
+    if (PL.visible() !== plugsShown) return render();
+    if (plugsBox) { const old = plugsBox, fresh = plugsBody(); H.clear(old); old.append(...fresh.childNodes); plugsBox = old; }
+  });
+
   // ---------- page ----------
   function section(title, note, body, key) {   // key = a section the viewer can collapse (remembered in this browser)
     const closed = key ? H.pref.get("noc." + key, false) : false;
@@ -377,6 +410,8 @@
         ? "Demo traffic is on: these rates are simulated."
         : "Only Central's and the NAS's wired ports are measured today. The trend is sampled in this browser; the portal will serve real history." })])));
     if (S.eero) root.append(section("Wi-Fi & devices", "Router cloud", wifi()));
+    plugsShown = !!PL && PL.visible();
+    if (plugsShown) root.append(section("Smart plugs", PL.data.stale ? "out of date" : null, plugsBody(), "plugs"));
     if (S.vpn) root.append(section("VPN", "WireGuard", vpn()));
   }
 

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" data-theme="{{ user_theme(user) }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floorplan · HAHBAH</title>
+<link rel="icon" href="/static/site/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/site/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/site/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>try { const t = JSON.parse(localStorage.getItem("hlt.theme")); if (t === "midnight" || t === "day") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<style>
+:root, [data-theme="day"] { --bg: #efece3; --panel: #ffffff; --panel-2: #f7f5ef; --border: #dcd7c9; --ink: #1b1d22; --muted: #646871; --bg-veil: rgba(239,236,227,.9);
+  --good: #1f7a45; --warn: #9a5800; --crit: #c42b2b; --info: #3f5f8f; --unknown: #8c909a; --good-bg: #e5f4ea; --warn-bg: #fff3dc; --crit-bg: #fde7e7; --green: #4e6e58;
+  --shadow: 0 1px 2px rgba(20,20,30,.06), 0 4px 16px rgba(20,20,30,.06); }
+[data-theme="midnight"] { --bg: #070b16; --panel: #0f1528; --panel-2: #131a31; --border: #222c4a; --ink: #e9edf6; --muted: #8e97ad; --bg-veil: rgba(7,11,22,.9);
+  --good: #3ccf7e; --warn: #ffb547; --crit: #ff5d57; --info: #7aa7ff; --unknown: #6f7890; --good-bg: #0f2e1d; --warn-bg: #3a2a0c; --crit-bg: #3d1414; --green: #4e6e58;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.35); }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 "Overpass", system-ui, sans-serif; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; filter: saturate(.7);
+  background: linear-gradient(var(--bg-veil), var(--bg-veil)), url("/static/site/station-1920.jpg") center 40% / cover no-repeat; }
+button, input, select { font: inherit; color: inherit; }
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px 8px; }
+.brand { --brand-ink: #f1ece0; display: flex; align-items: center; gap: 10px; background: #4e6e58; color: var(--brand-ink); padding: 7px 14px 12px 8px; border-radius: 6px; border: 3px solid #2a2a2a; box-shadow: inset 0 -5px 0 #f1ece0; font: 700 22px/1 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.brand svg { width: 30px; height: 30px; }
+.brand a { color: inherit; text-decoration: none; padding-top: 4px; }
+.spacer { flex: 1; }
+</style>
+<link rel="stylesheet" href="/static/floorplan.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="#F1ECE0" stroke="#1E1E1E" stroke-width="10"/><path fill="#1E1E1E" d="M26 23h14v21h20V23h14v54H60V56H40v21H26z"/></svg><a href="/">HAHBAH</a></div>
+  <div class="spacer"></div>
+  {% include "_usermenu.html" %}
+</header>
+<main class="fp">
+  <div class="fp-head">
+    <h1>Floorplan</h1>
+    <div class="fp-bar" id="fpBar"></div>
+  </div>
+  <p class="fp-msg" id="fpMsg" role="status"></p>
+  {% if has_image %}
+  <div class="fp-wrap">
+    <section class="fp-stage" aria-label="Apartment floorplan">
+      <div class="fp-frame" id="fpFrame">
+        <img id="fpImg" src="/floorplan/image" alt="Apartment floorplan drawing" draggable="false">
+        <svg id="fpSvg" class="fp-svg" role="group" aria-label="Devices on the floorplan"></svg>
+        <p class="fp-empty" id="fpEmpty" hidden>{% if is_admin %}Nothing is placed yet. Choose Edit layout to place your devices.{% else %}Nothing is placed yet.{% endif %}</p>
+      </div>
+      <div class="fp-linkbar" id="fpLinkBar" hidden></div>
+      <div class="fp-legend" id="fpLegend"></div>
+    </section>
+    <aside class="fp-side" id="fpSide" aria-label="Details"></aside>
+  </div>
+  {% else %}
+  <div class="fp-none card">
+    <h2>{% if is_admin %}Add floorplan.jpg to the media folder{% else %}No floorplan yet{% endif %}</h2>
+    <p>{% if is_admin %}Put the drawing in the portal media folder as floorplan.jpg, then reload this page.{% else %}Ask an admin to add the apartment drawing.{% endif %}</p>
+  </div>
+  {% endif %}
+</main>
+<script>window.HOMELAB_ADMIN = {{ is_admin | tojson }};</script>
+<script src="/static/plugs.js"></script>
+<script src="/static/floorplan.js"></script>
+</body>
+</html>

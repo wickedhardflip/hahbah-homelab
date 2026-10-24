@@ -175,3 +175,12 @@ def test_a_retry_that_works_clears_the_failure(tmp_path):
     r.tick(601.0)
     r.tick(1300.0)
     assert json.loads((tmp_path / "daily.json").read_text())["ok"] is True
+
+
+def test_a_quiet_job_writes_nothing_until_it_has_something_to_report(tmp_path):
+    out = [None, {"did": 1}]
+    r = Runner(tmp_path, [Job("q", 2, lambda: out.pop(0), quiet=True)], now=lambda: NOW)
+    r.tick(0.0)
+    assert not (tmp_path / "q.json").exists()
+    r.tick(2.0)
+    assert json.loads((tmp_path / "q.json").read_text())["data"] == {"did": 1}
