@@ -57,6 +57,8 @@ class Recorder:
         self.seen: dict = {}     # key -> consecutive checks present (not yet an incident)
         self.missing: dict = {}  # key -> consecutive checks absent (open incident)
         self.pruned_day = None
+        self.on_danger = None    # optional callback(list of incident dicts) for each newly claimed Danger (web push)
+        self._pushq: list = []
 
     # ----- addresses -----
     def _config(self) -> tuple:
@@ -161,6 +163,12 @@ class Recorder:
             self._metrics(db, snap, now)
             db.commit()
         self._flush(out)
+        queued, self._pushq = self._pushq, []
+        if queued and self.on_danger:
+            try:
+                self.on_danger(queued)
+            except Exception as e:  # noqa: BLE001 (push is best effort; email already went)
+                log.warning("push failed: %s", type(e).__name__)
         out = []
         try:
             with self.SL() as db:
@@ -397,6 +405,7 @@ class Recorder:
                 if db.query(Incident).filter(Incident.id == inc.id, Incident.emailed.is_(False), Incident.acked_by.is_(None)
                                              ).update({"emailed": True}, synchronize_session=False):
                     out.append((emails.alert(self._dict(inc), self.to, now, self.tz), "danger"))
+                    self._pushq.append(self._dict(inc))
         for inc in db.query(Incident).filter(Incident.closed_at.is_not(None), Incident.clear_sent.is_(False),
                                              Incident.closed_at <= naive(now - RECOVERY)).all():
             due = inc.emailed and on and not inc.acked_by   # somebody acknowledged it: they know, no all-clear

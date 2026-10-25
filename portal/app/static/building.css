@@ -1,0 +1,33 @@
+/* /building page. Color tokens come from the page's own :root block, so Day and Midnight both work. */
+.bd { max-width: 1500px; margin: 0 auto; padding: 8px 20px 48px; }
+.bd-head { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; }
+.bd h1 { font: 900 44px/1.05 "Overpass", sans-serif; letter-spacing: -.02em; margin: 10px 0 6px; }
+.bd-sub { margin: 0; min-height: 1.5em; font-weight: 700; color: var(--muted); }
+.btn { font: 700 14px "Overpass", sans-serif; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; background: var(--panel); color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn:focus-visible, .bd input:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+.bd-stage { position: relative; height: min(72vh, 760px); min-height: 420px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow);
+  background: radial-gradient(ellipse at 50% 40%, #f6f3ea 0%, #e4dfd2 70%, #d6d0c0 100%); }
+[data-theme="midnight"] .bd-stage { background: radial-gradient(ellipse at 50% 40%, #1b2440 0%, #0d1328 70%, #070b16 100%); }
+.bd-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.bd-cap { position: absolute; left: 18px; top: 14px; z-index: 2; font: 700 12px "JetBrains Mono", monospace; color: #6b6355; letter-spacing: .04em; text-transform: uppercase; pointer-events: none; }
+[data-theme="midnight"] .bd-cap { color: var(--muted); }
+.bd-load { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-weight: 700; color: var(--muted); pointer-events: none; }
+.bd-load[hidden] { display: none; }
+
+/* leader lines: a dot on the model, a short rule, then the name (positioned each frame by building.js) */
+.bd-labels { position: absolute; inset: 0; pointer-events: none; }
+.bd-lbl { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; color: #2a2622; }
+.bd-lbl i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.bd-lbl u { width: 34px; height: 1px; background: currentColor; flex: none; }
+.bd-lbl b { display: block; font: 800 13px "Overpass", sans-serif; line-height: 1.15; }
+.bd-lbl small { display: block; font: 600 11.5px "JetBrains Mono", monospace; color: #6b6355; }
+[data-theme="midnight"] .bd-lbl { color: #e9edf6; } [data-theme="midnight"] .bd-lbl small { color: #8e97ad; }
+
+.bd-ctrl { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 12px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+.bd-ctrl label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.bd-ctrl input[type=range] { width: 180px; accent-color: var(--green); }
+.bd-ctrl input[type=checkbox] { accent-color: var(--green); width: 16px; height: 16px; }
+.bd-hint { color: var(--muted); font-size: 13px; }
+@media (max-width: 640px) { .bd { padding: 8px 16px 40px; } .bd h1 { font-size: 34px; } .bd-ctrl input[type=range] { width: 120px; } .bd-lbl u { width: 14px; } }

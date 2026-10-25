@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" data-theme="{{ user_theme(user) }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HAHBAH">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#4e6e58">
+<title>HAHBAH</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/site/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/site/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/mobile.css">
+</head>
+<body>
+<div class="app">
+  <header class="appbar"><img src="/static/site/favicon.svg" alt=""><h1>HAHBAH</h1><span class="st" role="status"><i class="led unknown" id="led"></i><span id="stword">Checking</span></span></header>
+  <p class="notice" id="notice" role="status" hidden></p>
+  <section class="view" data-tab="home" id="vHome"></section>
+  <section class="view" data-tab="plugs" id="vPlugs" hidden></section>
+  <section class="view" data-tab="alerts" id="vAlerts" hidden></section>
+  <section class="view" data-tab="ask" id="vAsk" hidden></section>
+  <section class="view" data-tab="more" id="vMore" hidden></section>
+  <nav class="tabbar" role="tablist" aria-label="Sections" id="tabbar"></nav>
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>
+<script>window.HOMELAB_ADMIN = {{ is_admin | tojson }}; window.HB_PUSH = {{ push_on | tojson }};</script>
+<script src="/static/plugs.js"></script>
+<script src="/static/mobile.js"></script>
+</body>
+</html>

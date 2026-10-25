@@ -10,3 +10,4 @@ apps:
   - {id: replexon,   name: RePlexOn,      subdomain: replexon,   host: central, port: 9847,  health: /login,    lan_url: "http://192.168.1.5:9847", sso: true, admin: true}
   - {id: plex,       name: Plex,          subdomain: plex,       host: central, port: 32400, health: /identity, lan_url: "http://192.168.1.5:32400/web"}
   - {id: tautulli,   name: Tautulli,      subdomain: tautulli,   host: central, port: 8181,  health: /status,   lan_url: "", upstream: "tautulli:8181", admin: true}
+  - {id: chat,       name: Chat,          subdomain: chat,       host: central, port: 8080,  health: /health,   lan_url: "", upstream: "openwebui:8080", admin: true}

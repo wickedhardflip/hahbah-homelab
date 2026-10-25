@@ -21,3 +21,15 @@ def test_secrets_never_reach_the_web_facing_portal():
     files = [e if isinstance(e, str) else e["path"] for e in portal.get("env_file", [])]
     assert not any("porkbun" in f for f in files)
     assert not any("msmtprc" in v or "nas_collector" in v for v in portal.get("volumes", []))
+
+
+def test_open_webui_is_pinned_lan_only_and_only_reachable_through_caddy():
+    svc = COMPOSE["services"]["openwebui"]
+    assert not svc["image"].endswith(":latest") and ":" in svc["image"].rsplit("/", 1)[1]
+    assert "ports" not in svc                                   # Caddy (admin forward_auth) is the only way in
+    env = svc["environment"]
+    assert env["OLLAMA_BASE_URL"] == COMPOSE["services"]["portal"]["environment"]["OLLAMA_URL"]
+    assert env["ENABLE_OPENAI_API"] == "False" and env["ANONYMIZED_TELEMETRY"] == "False" and env["ENABLE_VERSION_UPDATE_CHECK"] == "False"
+    apps = yaml.safe_load((Path(__file__).parents[2] / "apps.yaml").read_text(encoding="utf-8"))["apps"]
+    chat = next(a for a in apps if a["id"] == "chat")
+    assert chat["admin"] is True and chat["upstream"] == "openwebui:8080" and chat["subdomain"] == "chat"

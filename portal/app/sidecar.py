@@ -4,7 +4,7 @@
 
 Jobs: nas (60 s, SSH with a key the NAS restricts to its stats script), mounts + pings (60 s), smart (daily 04:05) and
 speed (daily 04:10), eero + eero_usage (5 min / hourly, the Eero cloud API: nodes, devices, usage, settings), edge (6 h, Porkbun + DNS via the Eero), backup (5 min, a copy of RePlexOn's database), and mailer
-(30 s, sends the portal's outbox with msmtp to the owners + web-added addresses), weather (15 min, Open-Meteo), and with WYZE_EMAIL set the Wyze plugs (wyze 5 min, plug_cmd 2 s, plug_schedules 30 s). One failing job never stops the others.
+(30 s, sends the portal's outbox with msmtp to the owners + web-added addresses), weather (15 min, Open-Meteo), and with WYZE_EMAIL set the Wyze plugs (wyze 5 min, plug_cmd 2 s, plug_schedules 30 s), and with PLUGS_DIR set automations (30 s: presence + rules). One failing job never stops the others.
 """
 import json
 import logging
@@ -144,7 +144,8 @@ class Runner:
                 worker.start()
                 worker.join(job.timeout_s)
                 if "r" in box:
-                    self._record(job, box["r"])
+                    if not (job.quiet and box["r"]["ok"] and box["r"]["data"] is None):   # same rule as _run
+                        self._record(job, box["r"])
                     worker = None
                 else:
                     log.warning("collector job %s timed out after %ss", job.name, job.timeout_s)
@@ -187,6 +188,8 @@ def build_jobs(env=os.environ.get) -> list:
         eero = Eero(env("EERO_SESSION"))   # one object: both jobs share the cached network URL
         jobs.append(Job("eero", 300, eero.live))
         jobs.append(Job("eero_usage", 3600, eero.daily_usage))
+        from .wifi import WifiTracker   # signal + channel history from eero.json (no extra Eero calls)
+        jobs.append(Job("wifi", 300, WifiTracker(Path(env("COLLECTOR_DIR", "/out"))).tick, quiet=True))
         jobs.append(Job("eero_history", 86400, eero.history, daily_at="04:20", fresh_s=20 * 3600, timeout_s=120))
     if env("PORKBUN_API_KEY"):
         apps = Path(env("PORTAL_APPS_FILE", "/app/repo/apps.yaml"))
@@ -235,6 +238,7 @@ def build_jobs(env=os.environ.get) -> list:
     if env("WEATHER_LOCATION"):   # Open-Meteo, no key; the place comes from a file the portal writes (read-only here)
         from .collectors.weather import fetch_weather, read_location
         jobs.append(Job("weather", 900, lambda: fetch_weather(read_location(env("WEATHER_LOCATION")), env("PORTAL_TZ", "America/New_York"))))
+    plugs = None
     if env("WYZE_EMAIL"):   # Wyze smart plugs; login keys come from secrets/wyze.env, settings + commands from the shared /plugs folder
         from .collectors.wyze import Wyze
         from .plugs import PlugService
@@ -243,6 +247,14 @@ def build_jobs(env=os.environ.get) -> list:
         jobs.append(Job("wyze", 300, plugs.poll))
         jobs.append(Job("plug_cmd", 2, plugs.run_commands, quiet=True))   # lists a folder; the network is touched only when a command file is there
         jobs.append(Job("plug_schedules", 30, plugs.run_schedules, quiet=True))
+    if env("PLUGS_DIR"):   # presence (from eero.json) + if/then rules over the plugs; people + rules come from the shared /plugs folder
+        from .automations import Automations
+        from .collectors.weather import read_location
+        auto = Automations(Path(env("COLLECTOR_DIR", "/out")), Path(env("PLUGS_DIR")), env("PORTAL_TZ", "America/New_York"),
+                           location=lambda: read_location(env("WEATHER_LOCATION")))
+        jobs.append(Job("automations", 30, auto.tick, quiet=True))   # local files only; writes when something changed (or every 4 min)
+        if plugs:
+            plugs.gate = auto.gate
     return jobs
 
 

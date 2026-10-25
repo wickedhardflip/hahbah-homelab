@@ -36,9 +36,19 @@ class Settings:
     caddy_host: str = "caddy"
     host_gateway: str = "host.docker.internal"        # how the portal container reaches apps on the host
     ollama_url: str = ""
+    ollama_model: str = "gpt-oss:20b"                 # Ask hubbah model; the portal never pulls models
+    ollama_fallback: str = "gemma4:12b-it-qat"        # used when the default is not installed
     google_client_id: str = ""
     google_client_secret: str = field(default="", repr=False)   # never in repr/logs
     oauth_state_secret: str = field(default="", repr=False)     # signs the 10-minute hl_oauth cookie
+
+    vapid_private: str = field(default="", repr=False)   # web push (Danger alerts to phones); all three empty = push off
+    vapid_public: str = ""
+    vapid_subject: str = ""                              # mailto: or https: contact the push service may use
+
+    @property
+    def push_configured(self) -> bool:
+        return bool(self.vapid_private and self.vapid_public and self.vapid_subject)
 
     @property
     def google_configured(self) -> bool:
@@ -79,7 +89,12 @@ def load_settings() -> Settings:
         caddy_host=env("PORTAL_CADDY_HOST", "caddy"),
         host_gateway=env("PORTAL_HOST_GATEWAY", "host.docker.internal"),
         ollama_url=env("OLLAMA_URL", ""),
+        ollama_model=env("OLLAMA_MODEL", "gpt-oss:20b"),
+        ollama_fallback=env("OLLAMA_FALLBACK_MODEL", "gemma4:12b-it-qat"),
         google_client_id=env("GOOGLE_CLIENT_ID", "").strip(),
         google_client_secret=env("GOOGLE_CLIENT_SECRET", "").strip(),
         oauth_state_secret=env("PORTAL_STATE_SECRET", ""),
+        vapid_private=env("PORTAL_VAPID_PRIVATE", "").strip(),
+        vapid_public=env("PORTAL_VAPID_PUBLIC", "").strip(),
+        vapid_subject=env("PORTAL_VAPID_SUBJECT", "").strip(),
     )

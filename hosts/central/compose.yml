@@ -121,6 +121,28 @@ services:
     volumes:
       - /srv/homelab/tautulli:/config         # settings + history database
     # no ports: only Caddy and the portal reach it, on the stack's network
+  # Open WebUI: the full chat app for the iPhone, talking to Ollama on the Windows PC. Reached only through Caddy at chat.example.com
+  # (admin forward_auth, see apps.yaml). It has no accounts of its own (WEBUI_AUTH=False) because Caddy is the only way in; to add
+  # accounts later, start a fresh data folder. Nothing leaves the LAN: no cloud APIs, telemetry, update checks or web search.
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:v0.6.34    # pinned; bump deliberately
+    restart: unless-stopped
+    environment:
+      OLLAMA_BASE_URL: "http://192.168.1.9:11434"   # the Windows PC; shows no models while it sleeps
+      DEFAULT_MODELS: "gpt-oss:20b"
+      WEBUI_AUTH: "False"
+      ENABLE_SIGNUP: "False"
+      ENABLE_OPENAI_API: "False"
+      ENABLE_VERSION_UPDATE_CHECK: "False"
+      ENABLE_COMMUNITY_SHARING: "False"
+      ANONYMIZED_TELEMETRY: "False"
+      DO_NOT_TRACK: "True"
+      SCARF_NO_ANALYTICS: "True"
+      HF_HUB_OFFLINE: "1"
+    mem_limit: 1g
+    volumes:
+      - /srv/homelab/openwebui:/app/backend/data   # chats + settings
+    # no ports: only Caddy (openwebui:8080) and the portal's health check reach it, on the stack's network
   # Sample Service (private repo sample-service). The image is built on this host from that repo, like replexon:local;
   # this stack never builds or pulls it.
   social:

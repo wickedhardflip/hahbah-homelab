@@ -20,3 +20,4 @@
 .ps-link:hover { text-decoration: underline; }
 @media (max-width: 900px) { .plugstrip { padding: 0 16px 12px; } }
 @media (min-width: 901px) { .plugstrip:not([hidden]) ~ .layout .mapwrap { height: calc(100vh - 238px); } }   /* the strip takes a row: keep the map on one screen */
+a.ps-chip { color: inherit; text-decoration: none; padding-right: 12px; }   /* who's home chips (whoshome.js) */

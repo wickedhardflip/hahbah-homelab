@@ -122,6 +122,7 @@ class PlugService:
                  now=lambda: datetime.now(timezone.utc)):
         self.w, self.out, self.dir, self.tz, self.now = wyze, Path(out_dir), Path(plugs_dir), ZoneInfo(tz), now
         self.rows, self.error, self.lock = {}, None, threading.RLock()
+        self.gate = None   # automations.Automations.gate when rules exist: gate(pid, schedule) -> may this due schedule run?
         self.state = {"fired": {}, "tries": {}, "last_cmd": {}, "last_sched": {}}
         try:
             saved = json.loads((self.out / "plug_sched_state.json").read_text(encoding="utf-8"))
@@ -225,6 +226,9 @@ class PlugService:
                         if age > REPLAY_MIN:   # missed (collector was down): not replayed
                             continue
                         self.state["tries"][key] = stamp
+                        if self.gate and not self.gate(pid, s):   # an automation's "only when ..." does not hold: skipped, not retried
+                            self.state["fired"][key], changed = stamp, True
+                            continue
                     changed = True
                     err = None
                     if s["action"] in ("on", "off") and row["on"] == (s["action"] == "on"):

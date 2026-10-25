@@ -6,7 +6,7 @@ from app.registry import load_registry
 def test_loads_the_real_apps_file():
     from pathlib import Path
     apps = load_registry(Path(__file__).parents[2] / "apps.yaml")
-    assert {a["id"] for a in apps} == {"jobs", "social", "replexon", "plex", "tautulli"}   # LegacyMonitor retired 2026-10-02
+    assert {a["id"] for a in apps} == {"jobs", "social", "replexon", "plex", "tautulli", "chat"}   # LegacyMonitor retired 2026-10-02
     # host-port apps have a LAN URL; container-only apps (Tautulli) are reached through Caddy alone
     assert all(a["lan_url"].startswith("http://192.168.1.5:") or (a["lan_url"] == "" and a.get("upstream")) for a in apps)
 

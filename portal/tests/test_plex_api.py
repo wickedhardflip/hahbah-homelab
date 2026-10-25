@@ -116,7 +116,7 @@ def test_thumb_for_admin_clamps_width_and_caches(plex_app):
 
 
 def test_dashboard_ships_the_drive_in(plex_app):
-    body = as_user(plex_app, False).get("/").text
+    body = as_user(plex_app, False).get("/static/map3d.js").text   # the 3D view is its own module now
     assert 'kind: "drivein"' in body and 'g.userData.id = "plex"' in body and "paintDriveIn()" in body
 
 

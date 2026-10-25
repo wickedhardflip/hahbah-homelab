@@ -14,6 +14,29 @@ def test_snapshot_after_sign_in(app, client, builder):
     assert r.status_code == 200 and r.json()["schema"] == "homelab.snapshot/v1"
 
 
+def test_snapshot_etag_answers_304_until_it_changes(app, client, builder):
+    make_user(app)
+    sign_in(client)
+    first = client.get("/api/snapshot")
+    tag = first.headers["etag"]
+    assert first.headers["cache-control"] == "private, no-cache"
+    again = client.get("/api/snapshot", headers={"If-None-Match": tag})
+    assert again.status_code == 304 and again.content == b"" and again.headers["etag"] == tag
+    builder.snapshot = {**builder.snapshot, "alerts": [{"id": "x", "kind": "app", "target": "t", "state": "caution", "text": "t"}]}
+    app.state.store.refresh()
+    changed = client.get("/api/snapshot", headers={"If-None-Match": tag})
+    assert changed.status_code == 200 and changed.headers["etag"] != tag
+
+
+def test_3d_view_is_a_lazy_static_module_not_inline(app, client):
+    make_user(app)
+    sign_in(client)
+    page = client.get("/").text
+    assert "static/map3d.js" in page and "import * as THREE" not in page   # fetched only when 3D opens
+    js = client.get("/static/map3d.js")
+    assert js.status_code == 200 and 'import * as THREE from "three"' in js.text and "H.views[\"3d\"]" in js.text
+
+
 def test_apps_lists_the_registry(app, client, settings):
     settings.apps_file.write_text("apps:\n  - {id: jobs, name: Example App, subdomain: jobs, host: central, "
                                   "port: 8080, health: /login, lan_url: 'http://192.168.1.5:8080'}\n")

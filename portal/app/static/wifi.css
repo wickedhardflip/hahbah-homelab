@@ -1,0 +1,62 @@
+/* /wifi page: builds on floorplan.css (cards, buttons, side panel). Color tokens come from the page's :root block. */
+.wf-heat { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; image-rendering: auto; }
+.wf .seg { display: inline-flex; gap: 4px; }
+.wf-layer { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
+.wf-layer input { width: 17px; height: 17px; accent-color: var(--green); }
+.fp-svg.placing { cursor: crosshair; }
+.dev { cursor: pointer; }
+.dev circle.b { stroke: #fff; stroke-width: 2.5; }
+.dev.good circle.b { fill: var(--good); } .dev.fair circle.b { fill: var(--warn); } .dev.weak circle.b { fill: var(--crit); }
+.dev.gone circle.b { fill: #fff; stroke: #8c909a; stroke-dasharray: 3 3; }
+.dev circle.ring { fill: none; stroke: #1f5fbf; stroke-width: 3; display: none; }
+.dev.sel circle.ring, .dev:focus-visible circle.ring { display: block; }
+.dev:focus, .node:focus { outline: none; }
+.node { cursor: pointer; }
+.node path { fill: #3f5f8f; stroke: #fff; stroke-width: 2.5; }
+.node.sel path, .node:focus-visible path { stroke: #1f5fbf; }
+.lab rect { fill: var(--panel); stroke: var(--border); }
+.lab text { fill: var(--ink); font: 700 12px "Overpass", sans-serif; pointer-events: none; }
+.lab text.sub { fill: var(--muted); font: 600 11px "JetBrains Mono", monospace; }
+.dev:not(.sel) .lab, .node:not(.sel):not(:hover) .lab { display: none; }
+.weak circle { fill: none; stroke: var(--warn); stroke-width: 2.5; stroke-dasharray: 5 4; }
+.wf-time { margin-top: 12px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.wf-time b { font: 600 18px/1 "JetBrains Mono", monospace; min-width: 150px; }
+.wf-time input { width: 100%; accent-color: var(--green); }
+.wf-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--muted); align-items: center; }
+.wf-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.wf-legend .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.wf-legend .dot.good { background: var(--good); } .wf-legend .dot.fair { background: var(--warn); } .wf-legend .dot.weak { background: var(--crit); }
+.wf-legend .ramp { width: 90px; height: 10px; border-radius: 3px; border: 1px solid var(--border); background: linear-gradient(90deg, rgba(11,123,126,.05), rgba(11,123,126,.6)); }
+.fp-side { display: flex; flex-direction: column; gap: 4px; }
+.wf-card + .wf-card { border-top: 1px solid var(--border); margin-top: 8px; }
+.wf-card h3 { margin-top: 14px; }
+.wf-card:first-child h3 { margin-top: 0; }
+.wf-card .sec { margin: 12px 0 4px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.mono { font: 600 12.5px "JetBrains Mono", monospace; }
+.spark { width: 100%; height: 70px; display: block; margin-top: 8px; }
+.spark .ln { fill: none; stroke: var(--green); stroke-width: 2; }
+.spark .ref { stroke: var(--warn); stroke-dasharray: 3 4; stroke-width: 1.2; }
+.spark text { font: 10.5px "JetBrains Mono", monospace; fill: var(--muted); }
+.wf-list, .wf-ev, .know { list-style: none; margin: 0; padding: 0; }
+.wf-row { width: 100%; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; text-align: left; padding: 7px 4px; border: 0; border-top: 1px solid var(--border); background: none; cursor: pointer; font-size: 14px; }
+.wf-list li:first-child .wf-row { border-top: 0; }
+.wf-row .d { width: 10px; height: 10px; border-radius: 50%; background: var(--unknown); }
+.wf-row.good .d { background: var(--good); } .wf-row.fair .d { background: var(--warn); } .wf-row.weak .d { background: var(--crit); }
+.wf-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.wf-row small { color: var(--muted); }
+.wf-row:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+.wf-ev li { font-size: 13px; padding: 3px 0; }
+.crowd { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; }
+.crowd i { height: 12px; border-radius: 2px; background: var(--green); }
+.crowd-l { display: flex; justify-content: space-between; font: 11px "JetBrains Mono", monospace; color: var(--muted); margin-top: 3px; }
+.chan { width: 100%; display: block; }
+.chan .bar { fill: var(--unknown); } .chan .bar.ours { fill: var(--green); }
+.chan text { font: 11px "JetBrains Mono", monospace; fill: var(--muted); } .chan text.v { fill: var(--ink); font-weight: 600; }
+.nets { width: 100%; border-collapse: collapse; font-size: 12.5px; } .nets th { text-align: left; color: var(--muted); font-weight: 700; } .nets td, .nets th { padding: 4px 6px; } .nets .num { font-family: "JetBrains Mono", monospace; }
+.know { font-size: 13px; } .know li { padding: 4px 0 4px 22px; position: relative; }
+.know li::before { position: absolute; left: 0; top: 4px; font-weight: 900; }
+.know li.y::before { content: "\2713"; color: var(--good); } .know li.m::before { content: "~"; color: var(--warn); } .know li.n::before { content: "\2715"; color: var(--muted); }
+.scan { margin-top: 10px; } .scan summary { cursor: pointer; font-weight: 700; }
+.scan textarea { width: 100%; margin-top: 6px; font: 12px "JetBrains Mono", monospace; border: 1px solid var(--border); border-radius: 8px; padding: 6px; background: var(--panel-2); color: var(--ink); }
+.scan .cmd { display: block; margin-top: 6px; font: 12px "JetBrains Mono", monospace; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .wf-time { grid-template-columns: auto minmax(0, 1fr); } .wf-time b { grid-column: 1 / -1; min-width: 0; } }

@@ -1,5 +1,6 @@
 """The portal: sign-in, the dashboard, and the JSON API behind it."""
 import asyncio
+import hashlib
 import html
 import json
 import logging
@@ -42,6 +43,8 @@ from .db import Base, get_db, make_engine, make_sessionmaker, migrate
 from .google import GoogleCancelled, GoogleLogin, GoogleStateError, GoogleUnavailable
 from .models import Session as SessionRow, User, UserPrefs, utcnow
 from . import plugs as plugs_mod
+from . import routes_ask, routes_automations, routes_building, routes_mobile, routes_wifi
+from . import routes_insights
 from . import settingsstore
 from .recorder import Recorder, user_addresses
 from .registry import load_registry
@@ -771,8 +774,14 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
         return {"layout": clean}
 
     @app.get("/api/snapshot")
-    def api_snapshot(user=Depends(current_user)):
-        return {**visible_view(user), "mute": mute_state()}
+    def api_snapshot(request: Request, user=Depends(current_user)):
+        """The view is the same for 30 s at a time, so an unchanged one answers 304 and the page keeps its copy."""
+        body = json.dumps({**visible_view(user), "mute": mute_state()}, separators=(",", ":")).encode()
+        etag = '"' + hashlib.sha1(body).hexdigest()[:20] + '"'
+        headers = {"ETag": etag, "Cache-Control": "private, no-cache"}
+        if etag in request.headers.get("if-none-match", ""):
+            return Response(status_code=304, headers=headers)
+        return Response(body, media_type="application/json", headers=headers)
 
     def ack_route(request: Request, key: str, user, undo: bool) -> dict:
         if not same_origin(request, settings.home_url):
@@ -832,4 +841,11 @@ def create_app(settings: Settings | None = None, builder=None, collect: bool = T
         return Response(body, media_type=ctype if ctype.startswith("image/") else "application/octet-stream",
                         headers={"Cache-Control": "private, max-age=3600"})
 
+    routes_wifi.install(app, templates)   # /wifi and its API
+    app.state.visible_view, app.state.is_discreet = visible_view, is_discreet   # for the Ask hubbah context
+    routes_ask.install(app, templates)   # /ask and its streaming API
+    routes_automations.install(app, templates)   # /presence, /automations and their API
+    routes_building.install(app, templates)   # /building model page
+    routes_mobile.install(app, templates)   # /m phone shell, manifest, service worker, web push
+    routes_insights.install(app, templates)   # /insights: forecast, ISP report card, weekly digest
     return app

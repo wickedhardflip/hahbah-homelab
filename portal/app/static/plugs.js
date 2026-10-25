@@ -107,10 +107,12 @@
     P.list().forEach((p) => box.append(chip(p)));
     if (P.data.stale) box.append(h("span", { class: "ps-note", text: "Status is out of date" }));
     if (P.error) box.append(h("span", { class: "ps-note bad", role: "status", text: P.error }));
+    if (P.extra) P.extra(box);   // whoshome.js adds the "who's home" chips here
     box.append(h("a", { class: "ps-link", href: "/floorplan", text: "Floorplan" }));
     if (fid) { const b = [...box.querySelectorAll(".ps-btn")].find((x) => x.dataset.id === fid); if (b && !b.disabled) b.focus(); }
   }
   P.on(strip);
+  P.redraw = strip;
 
   window.Plugs = P;
   tick();

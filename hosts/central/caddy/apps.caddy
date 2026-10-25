@@ -90,3 +90,21 @@ handle @tautulli {
 		}
 	}
 }
+
+@chat host chat.example.com
+@xsite_chat expression {method} in ['POST', 'PUT', 'PATCH', 'DELETE'] && {header.Origin} != '' && {header.Origin} != 'https://chat.example.com'
+handle @chat {
+	route {
+		respond @xsite_chat 403
+		request_header -Remote-User
+		request_header -X-Homelab-Proxy
+		forward_auth portal:8000 {
+			uri /auth/verify?role=admin
+			copy_headers Remote-User
+		}
+		reverse_proxy openwebui:8080 {
+			header_up Cookie "(^|;)\s*hl_session\s*=[^;]*" "$1"
+			header_down Set-Cookie "^\s*hl_session\s*=.*" ""
+		}
+	}
+}
