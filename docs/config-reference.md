@@ -30,6 +30,9 @@ Every setting is an environment variable, set in `hosts/central/compose.yml` (pl
 | `FORWARDED_ALLOW_IPS` | set in compose | The only address whose `X-Forwarded-*` headers are trusted (Caddy). |
 | `ALERT_EMAIL_TO` | unset | Starting list of alert addresses, first = primary. See `deploy/alerts-env.sh`. |
 | `OLLAMA_URL` | unset | Optional local LLM box to show on the map. |
+| `OLLAMA_MODEL` | `gpt-oss:20b` | Model the Ask page uses. The portal never pulls models. |
+| `OLLAMA_FALLBACK_MODEL` | `gemma4:12b-it-qat` | Used when the main model is not installed. |
+| `PORTAL_VAPID_PRIVATE`, `PORTAL_VAPID_PUBLIC`, `PORTAL_VAPID_SUBJECT` | unset | Web push keys and a `mailto:` contact. Push stays off unless all three are set. |
 | `TAUTULLI_URL`, `TAUTULLI_API_KEY` | unset | Optional Plex activity. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PORTAL_STATE_SECRET` | unset | Optional Google sign-in. |
 
